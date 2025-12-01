@@ -1,10 +1,9 @@
 <script lang="ts">
-  // List item with checkbox, text, and swipe/hover actions
-  // Mobile: Swipe to reveal edit/delete
+  // List item with checkbox, text, and long-press/hover actions
+  // Mobile: Long press to reveal edit/delete
   // Desktop: Hover to show actions
 
   import { Check, Pencil, Trash2 } from 'lucide-svelte';
-  import { panComposition as pan } from 'svelte-gestures';
   import type { Item } from '$lib/types';
 
   interface Props {
@@ -16,10 +15,10 @@
 
   let { item, onToggle, onEdit, onDelete }: Props = $props();
 
-  // Swipe state
-  let swipeOffset = $state(0);
-  let isSwiped = $state(false);
+  // Long press state
+  let showActions = $state(false);
   let isDesktop = $state(false);
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Detect desktop on mount
   $effect(() => {
@@ -33,38 +32,51 @@
     }
   });
 
-  // Handle pan gesture (swipe)
-  function handlePan(event: CustomEvent) {
-    if (isDesktop) return; // No swipe on desktop
-
-    const { detail } = event;
-
-    if (detail.direction === 'left') {
-      // Swipe left to reveal actions
-      const offset = Math.max(-100, Math.min(0, detail.x));
-      swipeOffset = offset;
-      isSwiped = offset < -30; // Threshold for "swiped"
-    } else if (detail.direction === 'right' && isSwiped) {
-      // Swipe right to close
-      swipeOffset = 0;
-      isSwiped = false;
-    }
-  }
-
-  function handlePanEnd(event: CustomEvent) {
+  // Long press detection
+  function handleTouchStart(event: TouchEvent) {
     if (isDesktop) return;
 
-    const { detail } = event;
+    // Don't trigger long press on checkbox
+    const target = event.target as HTMLElement;
+    if (target.closest('.checkbox')) return;
 
-    // Snap to open or closed
-    if (detail.x < -30) {
-      swipeOffset = -100;
-      isSwiped = true;
-    } else {
-      swipeOffset = 0;
-      isSwiped = false;
+    longPressTimer = setTimeout(() => {
+      showActions = true;
+    }, 500); // 500ms for long press
+  }
+
+  function handleTouchEnd() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
     }
   }
+
+  function handleTouchMove() {
+    // Cancel long press if user moves finger
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  // Close actions when clicking outside
+  function handleClickOutside(event: MouseEvent) {
+    if (!isDesktop && showActions) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.item-wrapper')) {
+        showActions = false;
+      }
+    }
+  }
+
+  // Add global click listener
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', handleClickOutside);
+      return () => window.removeEventListener('click', handleClickOutside);
+    }
+  });
 
   function handleToggle() {
     onToggle?.(item.id);
@@ -72,28 +84,24 @@
 
   function handleEdit() {
     onEdit?.(item.id);
-    // Close swipe after action
-    swipeOffset = 0;
-    isSwiped = false;
+    showActions = false;
   }
 
   function handleDelete() {
     onDelete?.(item.id);
-    // No need to close swipe, item will be removed
   }
 </script>
 
 <div
   class="item-wrapper"
-  class:swiped={isSwiped}
+  class:show-actions={showActions}
 >
   <!-- Main item content -->
   <div
     class="item-content"
-    style="transform: translateX({swipeOffset}px)"
-    use:pan
-    onpan={handlePan}
-    onpanend={handlePanEnd}
+    ontouchstart={handleTouchStart}
+    ontouchend={handleTouchEnd}
+    ontouchmove={handleTouchMove}
   >
     <!-- Checkbox -->
     <button
@@ -138,7 +146,7 @@
     </div>
   </div>
 
-  <!-- Action buttons (mobile swipe) -->
+  <!-- Action buttons (mobile long press) -->
   <div class="actions-mobile">
     <button
       type="button"
@@ -193,9 +201,6 @@
 
     /* Background */
     background-color: var(--bg-primary);
-
-    /* Transition */
-    transition: transform var(--transition-normal);
   }
 
   @media (min-width: 1024px) {
@@ -315,18 +320,31 @@
     }
   }
 
-  /* Mobile actions (swipe to reveal) */
+  /* Mobile actions (long press to reveal) */
   .actions-mobile {
     /* Layout */
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
-    z-index: 0;
+    z-index: 2;
 
     /* Layout */
     display: flex;
     align-items: center;
+
+    /* Hidden by default */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(20px);
+    transition: opacity var(--transition-fast),
+                transform var(--transition-fast);
+  }
+
+  .item-wrapper.show-actions .actions-mobile {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
   }
 
   @media (min-width: 1024px) {
