@@ -47,6 +47,11 @@
   let debugMessages = $state<string[]>([]);
   let deletingItemListName = $state<string>('');
 
+  // Manual swipe detection
+  let touchStartX = $state(0);
+  let touchStartY = $state(0);
+  let touchStartTime = $state(0);
+
   // Check if user has seen swipe hint before
   const SWIPE_HINT_KEY = 'swipe-hint-seen';
 
@@ -70,11 +75,59 @@
   // Debug helper (temporary)
   function addDebugMessage(msg: string) {
     const timestamp = new Date().toLocaleTimeString();
-    debugMessages = [...debugMessages.slice(-4), `${timestamp}: ${msg}`];
+    debugMessages = [...debugMessages.slice(-19), `${timestamp}: ${msg}`];
     console.log(msg);
   }
 
-  // Handle swipe navigation (mobile)
+  // Manual swipe detection handlers
+  function handleTouchStart(e: TouchEvent) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+    addDebugMessage(`🔵 Start X:${Math.round(touchStartX)}`);
+  }
+
+  function handleTouchEnd(e: TouchEvent) {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    const deltaTime = Date.now() - touchStartTime;
+
+    addDebugMessage(`🔴 End ΔX:${Math.round(deltaX)} ΔY:${Math.round(deltaY)} ${deltaTime}ms`);
+
+    // Swipe threshold: 50px horizontal, less than 100px vertical, within 1000ms
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 100 && deltaTime < 1000) {
+      if (deltaX > 0) {
+        // Swipe right
+        addDebugMessage('🎯 SWIPE RIGHT detected');
+        if (currentListIndex > 0) {
+          currentListIndex--;
+          addDebugMessage(`✅ Nav to list ${currentListIndex}`);
+        } else {
+          addDebugMessage('⚠️ At first list');
+        }
+      } else {
+        // Swipe left
+        addDebugMessage('🎯 SWIPE LEFT detected');
+        if (currentListIndex < listsData.length - 1) {
+          currentListIndex++;
+          addDebugMessage(`✅ Nav to list ${currentListIndex}`);
+        } else {
+          addDebugMessage('⚠️ At last list');
+        }
+      }
+
+      // Dismiss swipe hint
+      if (showSwipeHint) {
+        handleDismissSwipeHint();
+      }
+    } else {
+      addDebugMessage(`⚠️ No swipe: threshold not met`);
+    }
+  }
+
+  // Handle swipe navigation (mobile) - from svelte-gestures
   function handleSwipe(event: CustomEvent) {
     addDebugMessage(`🎯 Swipe ${event.detail.direction}`);
     console.log('🎯 Swipe detected:', {
@@ -398,13 +451,8 @@
       <div class="mobile-view">
         <div
           class="swipe-container"
-          use:swipe={{ timeframe: 1000, minSwipeDistance: 30 }}
-          onswipe={handleSwipe}
-          onpointerdown={(e) => { addDebugMessage(`👇 down ${e.pointerType}`); console.log('👇 pointerdown', e.pointerType, e.clientX); }}
-          onpointerup={(e) => { addDebugMessage(`👆 up ${e.pointerType}`); console.log('👆 pointerup', e.pointerType, e.clientX); }}
-          ontouchstart={(e) => { addDebugMessage(`🔵 touchstart`); }}
-          ontouchmove={(e) => { addDebugMessage(`🟢 touchmove`); }}
-          ontouchend={(e) => { addDebugMessage(`🔴 touchend`); }}
+          ontouchstart={handleTouchStart}
+          ontouchend={handleTouchEnd}
         >
           <div
             class="lists-wrapper"
@@ -617,14 +665,15 @@
     top: 60px;
     left: 0;
     right: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
     color: #0f0;
     font-family: monospace;
-    font-size: 11px;
+    font-size: 12px;
     z-index: 9999;
     padding: 8px;
-    max-height: 150px;
+    max-height: 40vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .debug-header {
