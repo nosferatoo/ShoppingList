@@ -359,7 +359,7 @@
       <div class="mobile-view">
         <div
           class="swipe-container"
-          use:swipe={{ timeframe: 300, minSwipeDistance: 60, touchAction: 'pan-y' }}
+          use:swipe={{ timeframe: 300, minSwipeDistance: 60, touchAction: 'pan-x' }}
           onswipe={handleSwipe}
         >
           <div
@@ -643,8 +643,7 @@
     overflow: hidden;
     position: relative;
 
-    /* Enable touch scrolling */
-    touch-action: pan-y;
+    /* Touch action handled by svelte-gestures configuration */
   }
 
   .lists-wrapper {
