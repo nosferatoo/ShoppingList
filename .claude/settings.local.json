@@ -8,7 +8,9 @@
       "Bash(timeout /t 3)",
       "Bash(npm run check:*)",
       "Bash(ipconfig:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { swipeComposition as swipe } from 'svelte-gestures';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus } from 'lucide-svelte';
@@ -42,9 +41,6 @@
   let editingItemListName = $state<string>('');
   let deletingItemId = $state<number | null>(null);
   let deletingItemName = $state<string>('');
-
-  // Debug logging (temporary)
-  let debugMessages = $state<string[]>([]);
   let deletingItemListName = $state<string>('');
 
   // Manual swipe detection
@@ -72,19 +68,11 @@
   let currentList = $derived(listsData[currentListIndex]);
   let hasMultipleLists = $derived(listsData.length > 1);
 
-  // Debug helper (temporary)
-  function addDebugMessage(msg: string) {
-    const timestamp = new Date().toLocaleTimeString();
-    debugMessages = [...debugMessages.slice(-19), `${timestamp}: ${msg}`];
-    console.log(msg);
-  }
-
   // Manual swipe detection handlers
   function handleTouchStart(e: TouchEvent) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartTime = Date.now();
-    addDebugMessage(`🔵 Start X:${Math.round(touchStartX)}`);
   }
 
   function handleTouchEnd(e: TouchEvent) {
@@ -94,70 +82,24 @@
     const deltaY = touchEndY - touchStartY;
     const deltaTime = Date.now() - touchStartTime;
 
-    addDebugMessage(`🔴 End ΔX:${Math.round(deltaX)} ΔY:${Math.round(deltaY)} ${deltaTime}ms`);
-
     // Swipe threshold: 50px horizontal, less than 100px vertical, within 1000ms
     if (Math.abs(deltaX) > 50 && Math.abs(deltaY) < 100 && deltaTime < 1000) {
       if (deltaX > 0) {
-        // Swipe right
-        addDebugMessage('🎯 SWIPE RIGHT detected');
+        // Swipe right = previous list
         if (currentListIndex > 0) {
           currentListIndex--;
-          addDebugMessage(`✅ Nav to list ${currentListIndex}`);
-        } else {
-          addDebugMessage('⚠️ At first list');
         }
       } else {
-        // Swipe left
-        addDebugMessage('🎯 SWIPE LEFT detected');
+        // Swipe left = next list
         if (currentListIndex < listsData.length - 1) {
           currentListIndex++;
-          addDebugMessage(`✅ Nav to list ${currentListIndex}`);
-        } else {
-          addDebugMessage('⚠️ At last list');
         }
       }
 
-      // Dismiss swipe hint
+      // Dismiss swipe hint on first swipe
       if (showSwipeHint) {
         handleDismissSwipeHint();
       }
-    } else {
-      addDebugMessage(`⚠️ No swipe: threshold not met`);
-    }
-  }
-
-  // Handle swipe navigation (mobile) - from svelte-gestures
-  function handleSwipe(event: CustomEvent) {
-    addDebugMessage(`🎯 Swipe ${event.detail.direction}`);
-    console.log('🎯 Swipe detected:', {
-      direction: event.detail.direction,
-      target: event.target,
-      currentIndex: currentListIndex,
-      totalLists: listsData.length,
-      timestamp: Date.now()
-    });
-
-    const direction = event.detail.direction;
-
-    // Dismiss swipe hint on first swipe
-    if (showSwipeHint) {
-      handleDismissSwipeHint();
-    }
-
-    if (direction === 'left' && currentListIndex < listsData.length - 1) {
-      // Swipe left = next list
-      currentListIndex++;
-      addDebugMessage(`✅ Nav to list ${currentListIndex}`);
-      console.log('✅ Navigated to list', currentListIndex);
-    } else if (direction === 'right' && currentListIndex > 0) {
-      // Swipe right = previous list
-      currentListIndex--;
-      addDebugMessage(`✅ Nav to list ${currentListIndex}`);
-      console.log('✅ Navigated to list', currentListIndex);
-    } else {
-      addDebugMessage('⚠️ Swipe at boundary');
-      console.log('⚠️ Swipe ignored - at boundary or invalid direction');
     }
   }
 
@@ -425,19 +367,6 @@
     onSettingsClick={handleSettingsClick}
   />
 
-  <!-- Debug overlay (temporary) -->
-  {#if debugMessages.length > 0}
-    <div class="debug-overlay">
-      <div class="debug-header">
-        <strong>Debug Log</strong>
-        <button onclick={() => debugMessages = []} class="debug-clear">Clear</button>
-      </div>
-      {#each debugMessages as msg}
-        <div class="debug-message">{msg}</div>
-      {/each}
-    </div>
-  {/if}
-
   <!-- Main content -->
   <main class="main-content">
     {#if listsData.length === 0}
@@ -657,47 +586,6 @@
 
     /* Background */
     background-color: var(--bg-primary);
-  }
-
-  /* Debug overlay (temporary) */
-  .debug-overlay {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.95);
-    color: #0f0;
-    font-family: monospace;
-    font-size: 12px;
-    z-index: 9999;
-    padding: 8px;
-    max-height: 40vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .debug-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #0f0;
-  }
-
-  .debug-clear {
-    background: #0f0;
-    color: #000;
-    border: none;
-    padding: 2px 8px;
-    font-size: 10px;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-
-  .debug-message {
-    padding: 2px 0;
-    border-bottom: 1px solid #333;
   }
 
   .main-content {
