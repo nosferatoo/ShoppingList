@@ -398,7 +398,7 @@
       <div class="mobile-view">
         <div
           class="swipe-container"
-          use:swipe={{ timeframe: 300, minSwipeDistance: 60, touchAction: 'none' }}
+          use:swipe={{ timeframe: 1000, minSwipeDistance: 30 }}
           onswipe={handleSwipe}
           onpointerdown={(e) => { addDebugMessage(`👇 down ${e.pointerType}`); console.log('👇 pointerdown', e.pointerType, e.clientX); }}
           onpointerup={(e) => { addDebugMessage(`👆 up ${e.pointerType}`); console.log('👆 pointerup', e.pointerType, e.clientX); }}
