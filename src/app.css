@@ -280,11 +280,13 @@
   .lists-container {
     display: flex;
     overflow-x: hidden;
-    scroll-snap-type: x mandatory;
+    /* scroll-snap-type: x mandatory; */ /* Removed - conflicts with swipe gesture navigation */
   }
 
+  /* .list-view - Removed unused class that conflicts with swipe gestures
   .list-view {
     flex: 0 0 100%;
     scroll-snap-align: start;
   }
+  */
 }

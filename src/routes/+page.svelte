@@ -42,6 +42,9 @@
   let editingItemListName = $state<string>('');
   let deletingItemId = $state<number | null>(null);
   let deletingItemName = $state<string>('');
+
+  // Debug logging (temporary)
+  let debugMessages = $state<string[]>([]);
   let deletingItemListName = $state<string>('');
 
   // Check if user has seen swipe hint before
@@ -64,8 +67,24 @@
   let currentList = $derived(listsData[currentListIndex]);
   let hasMultipleLists = $derived(listsData.length > 1);
 
+  // Debug helper (temporary)
+  function addDebugMessage(msg: string) {
+    const timestamp = new Date().toLocaleTimeString();
+    debugMessages = [...debugMessages.slice(-4), `${timestamp}: ${msg}`];
+    console.log(msg);
+  }
+
   // Handle swipe navigation (mobile)
   function handleSwipe(event: CustomEvent) {
+    addDebugMessage(`🎯 Swipe ${event.detail.direction}`);
+    console.log('🎯 Swipe detected:', {
+      direction: event.detail.direction,
+      target: event.target,
+      currentIndex: currentListIndex,
+      totalLists: listsData.length,
+      timestamp: Date.now()
+    });
+
     const direction = event.detail.direction;
 
     // Dismiss swipe hint on first swipe
@@ -76,9 +95,16 @@
     if (direction === 'left' && currentListIndex < listsData.length - 1) {
       // Swipe left = next list
       currentListIndex++;
+      addDebugMessage(`✅ Nav to list ${currentListIndex}`);
+      console.log('✅ Navigated to list', currentListIndex);
     } else if (direction === 'right' && currentListIndex > 0) {
       // Swipe right = previous list
       currentListIndex--;
+      addDebugMessage(`✅ Nav to list ${currentListIndex}`);
+      console.log('✅ Navigated to list', currentListIndex);
+    } else {
+      addDebugMessage('⚠️ Swipe at boundary');
+      console.log('⚠️ Swipe ignored - at boundary or invalid direction');
     }
   }
 
@@ -346,6 +372,19 @@
     onSettingsClick={handleSettingsClick}
   />
 
+  <!-- Debug overlay (temporary) -->
+  {#if debugMessages.length > 0}
+    <div class="debug-overlay">
+      <div class="debug-header">
+        <strong>Debug Log</strong>
+        <button onclick={() => debugMessages = []} class="debug-clear">Clear</button>
+      </div>
+      {#each debugMessages as msg}
+        <div class="debug-message">{msg}</div>
+      {/each}
+    </div>
+  {/if}
+
   <!-- Main content -->
   <main class="main-content">
     {#if listsData.length === 0}
@@ -361,6 +400,8 @@
           class="swipe-container"
           use:swipe={{ timeframe: 300, minSwipeDistance: 60, touchAction: 'pan-x' }}
           onswipe={handleSwipe}
+          onpointerdown={(e) => { addDebugMessage(`👇 down ${e.pointerType}`); console.log('👇 pointerdown', e.pointerType, e.clientX); }}
+          onpointerup={(e) => { addDebugMessage(`👆 up ${e.pointerType}`); console.log('👆 pointerup', e.pointerType, e.clientX); }}
         >
           <div
             class="lists-wrapper"
@@ -565,6 +606,46 @@
 
     /* Background */
     background-color: var(--bg-primary);
+  }
+
+  /* Debug overlay (temporary) */
+  .debug-overlay {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.9);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 11px;
+    z-index: 9999;
+    padding: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #0f0;
+  }
+
+  .debug-clear {
+    background: #0f0;
+    color: #000;
+    border: none;
+    padding: 2px 8px;
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .debug-message {
+    padding: 2px 0;
+    border-bottom: 1px solid #333;
   }
 
   .main-content {
