@@ -487,9 +487,9 @@
     align-items: center;
     justify-content: center;
 
-    /* Spacing - no margin or padding for maximum compactness */
+    /* Spacing */
     margin: 0;
-    padding: 0;
+    padding: var(--space-2) var(--space-4);
   }
 
   .item-count {
