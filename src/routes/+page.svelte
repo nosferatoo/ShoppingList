@@ -402,6 +402,9 @@
           onswipe={handleSwipe}
           onpointerdown={(e) => { addDebugMessage(`👇 down ${e.pointerType}`); console.log('👇 pointerdown', e.pointerType, e.clientX); }}
           onpointerup={(e) => { addDebugMessage(`👆 up ${e.pointerType}`); console.log('👆 pointerup', e.pointerType, e.clientX); }}
+          ontouchstart={(e) => { addDebugMessage(`🔵 touchstart`); }}
+          ontouchmove={(e) => { addDebugMessage(`🟢 touchmove`); }}
+          ontouchend={(e) => { addDebugMessage(`🔴 touchend`); }}
         >
           <div
             class="lists-wrapper"
