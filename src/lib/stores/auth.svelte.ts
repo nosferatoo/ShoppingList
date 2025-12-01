@@ -92,11 +92,12 @@ export const authStore = {
 
   /**
    * Initialize auth state from session
-   * Call this once on app load
+   * Call this once on app load, or when session changes
    * NOTE: Always verifies user with getUser() for security, even if initialSession is provided
    */
   async initialize(initialSession: Session | null): Promise<void> {
-    if (state.isInitialized) return;
+    // If already initialized, just update the state without re-setting up listeners
+    const needsListenerSetup = !state.isInitialized;
 
     state.isLoading = true;
     state.error = null;
@@ -117,10 +118,11 @@ export const authStore = {
       state.session = user ? session : null;
       state.user = user;
 
-      // Set up auth state change listener
-      this.setupAuthListener();
-
-      state.isInitialized = true;
+      // Set up auth state change listener only on first initialization
+      if (needsListenerSetup) {
+        this.setupAuthListener();
+        state.isInitialized = true;
+      }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
       state.error = error instanceof Error ? error.message : 'Failed to initialize auth';

@@ -17,6 +17,17 @@
 
   let { children, data }: Props = $props();
 
+  // Watch for session changes and update auth store
+  $effect(() => {
+    // When session changes (e.g., after login/logout), update the auth store
+    if (data.session) {
+      // Force re-initialization by updating the state even if already initialized
+      authStore.initialize(data.session).catch((error) => {
+        console.error('Auth initialization failed:', error);
+      });
+    }
+  });
+
   // Initialize app on mount
   onMount(() => {
     // Register service worker for PWA offline support
@@ -24,12 +35,6 @@
 
     // Capture install prompt for "Add to Home Screen" functionality
     captureInstallPrompt();
-
-    // Initialize auth store with session from server
-    authStore.initialize(data.session).catch((error) => {
-      console.error('Auth initialization failed:', error);
-      // Don't break the app if auth init fails
-    });
 
     // Track current user ID to detect actual user changes vs token refreshes
     let currentUserId: string | null = null;
