@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 3)",
+      "Bash(npm run check:*)",
+      "Bash(ipconfig:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
