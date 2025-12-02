@@ -219,7 +219,6 @@
   /* Mobile: full width, no max */
   @media (max-width: 1023px) {
     :global(.list-card) {
-      min-width: unset;
       max-width: unset;
       border-radius: 0;
       box-shadow: none;

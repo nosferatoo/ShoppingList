@@ -13,7 +13,10 @@
       "Bash(git commit:*)",
       "WebFetch(domain:www.embla-carousel.com)",
       "WebFetch(domain:github.com)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(git checkout:*)",
+      "Bash(npx shadcn-svelte@latest add:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

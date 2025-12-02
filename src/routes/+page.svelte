@@ -866,7 +866,6 @@
     /* Each carousel item - full viewport width for single slide view */
     :global(.carousel-item-wrapper) {
       flex: 0 0 100%;
-      min-width: 0;
       display: flex;
       justify-content: center;
 
