@@ -315,7 +315,7 @@ export interface UserListsWithItemsResponse {
 export interface ChangesSinceResponse {
   lists: List[];
   items: Item[];
-  user_list_settings: UserListSettings[];
+  user_list_settings?: UserListSettings[]; // Optional for backward compatibility
   server_time: string;
 }
 
