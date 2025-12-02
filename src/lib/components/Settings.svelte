@@ -3,6 +3,8 @@
   // Full-screen on mobile, modal on desktop
 
   import { User, ListPlus, RefreshCw, LogOut, X } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Separator } from '$lib/components/ui/separator';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
 
@@ -117,14 +119,15 @@
       <!-- Header -->
       <header class="panel-header">
         <h2 id="settings-title" class="panel-title">Settings</h2>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           class="close-button"
           onclick={onClose}
           aria-label="Close settings"
         >
           <X size={24} />
-        </button>
+        </Button>
       </header>
 
       <!-- Content -->
@@ -139,21 +142,24 @@
               <p class="user-email">{userEmail || 'No user'}</p>
               <p class="user-label">Signed in</p>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="icon"
               class="logout-icon-button"
               onclick={handleLogout}
               aria-label="Log out"
             >
               <LogOut size={20} />
-            </button>
+            </Button>
           </div>
         </section>
 
+        <Separator />
+
         <!-- Lists Management Section -->
         <section class="settings-section">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             class="menu-item"
             onclick={handleEditLists}
           >
@@ -161,13 +167,15 @@
               <ListPlus size={20} />
             </div>
             <span class="menu-item-text">Edit Lists</span>
-          </button>
+          </Button>
         </section>
+
+        <Separator />
 
         <!-- Sync Section -->
         <section class="settings-section">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             class="menu-item"
             onclick={handleSync}
             disabled={!isOnline || isSyncing}
@@ -187,7 +195,7 @@
                 {/if}
               </span>
             </div>
-          </button>
+          </Button>
         </section>
       </div>
     </div>
@@ -333,40 +341,13 @@
     margin: 0;
   }
 
-  .close-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Size */
-    width: 44px;
-    height: 44px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-secondary);
-
-    /* Transition */
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
+  /* Custom styling for close button */
+  :global(.close-button) {
+    color: var(--text-secondary) !important;
   }
 
-  .close-button:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
-  }
-
-  .close-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.close-button:hover) {
+    color: var(--text-primary) !important;
   }
 
   /* ============================================================================
@@ -429,48 +410,20 @@
     padding: var(--space-4);
   }
 
-  .logout-icon-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* Custom styling for logout button */
+  :global(.logout-icon-button) {
     flex-shrink: 0;
-
-    /* Size */
-    width: 40px;
-    height: 40px;
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-danger);
-
-    /* Transition */
-    transition: background-color var(--transition-fast),
-                border-color var(--transition-fast),
-                transform var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
+    color: var(--text-danger) !important;
+    border-color: var(--border-subtle) !important;
   }
 
-  .logout-icon-button:hover {
-    background-color: var(--bg-danger-hover);
-    border-color: var(--text-danger);
+  :global(.logout-icon-button:hover) {
+    background-color: var(--bg-danger-hover) !important;
+    border-color: var(--text-danger) !important;
     transform: scale(1.05);
   }
 
-  .logout-icon-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  .logout-icon-button:active {
-    background-color: var(--bg-tertiary);
+  :global(.logout-icon-button:active) {
     transform: scale(0.95);
   }
 
@@ -521,42 +474,20 @@
     margin: 0;
   }
 
-  /* Menu Items */
-  .menu-item {
-    /* Layout */
+  /* Custom styling for menu items */
+  :global(.menu-item) {
     display: flex;
     align-items: center;
     gap: var(--space-3);
     width: 100%;
-
-    /* Style */
-    background-color: var(--bg-secondary);
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Spacing */
-    padding: var(--space-4);
-
-    /* Transition */
-    transition: background-color var(--transition-fast);
-
-    /* Text align */
-    text-align: left;
+    background-color: var(--bg-secondary) !important;
+    padding: var(--space-4) !important;
+    height: auto !important;
+    justify-content: flex-start !important;
   }
 
-  .menu-item:hover:not(:disabled) {
-    background-color: var(--bg-hover);
-  }
-
-  .menu-item:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .menu-item:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.menu-item:hover:not(:disabled)) {
+    background-color: var(--bg-hover) !important;
   }
 
   .menu-item-icon {
