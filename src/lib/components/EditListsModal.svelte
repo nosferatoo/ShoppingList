@@ -505,8 +505,7 @@
             <Input
               id="list-title"
               type="text"
-              class="form-input"
-              class:error={errorMessage}
+              class={`form-input ${errorMessage ? 'error' : ''}`}
               placeholder="e.g., Groceries"
               bind:value={newListTitle}
               oninput={() => (errorMessage = '')}
@@ -525,8 +524,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="type-option"
-                class:active={newListType === 'shopping'}
+                class={`type-option ${newListType === 'shopping' ? 'active' : ''}`}
                 onclick={() => (newListType = 'shopping')}
                 disabled={isSaving}
               >
@@ -536,8 +534,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="type-option"
-                class:active={newListType === 'todo'}
+                class={`type-option ${newListType === 'todo' ? 'active' : ''}`}
                 onclick={() => (newListType = 'todo')}
                 disabled={isSaving}
               >
@@ -665,8 +662,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="type-option"
-                class:active={renameType === 'shopping'}
+                class={`type-option ${renameType === 'shopping' ? 'active' : ''}`}
                 onclick={() => (renameType = 'shopping')}
                 disabled={isSaving}
               >
@@ -676,8 +672,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="type-option"
-                class:active={renameType === 'todo'}
+                class={`type-option ${renameType === 'todo' ? 'active' : ''}`}
                 onclick={() => (renameType = 'todo')}
                 disabled={isSaving}
               >
