@@ -184,6 +184,19 @@ async function pullRemoteChanges(): Promise<{ count: number; hasChanges: boolean
     changeCount++;
   }
 
+  // Merge user list settings using LWW
+  for (const settings of changes.user_list_settings) {
+    const local = await db.userListSettings
+      .where('[user_id+list_id]')
+      .equals([settings.user_id, settings.list_id])
+      .first();
+
+    if (!local || shouldUseRemote(local, settings)) {
+      await db.userListSettings.put(settings);
+      changeCount++;
+    }
+  }
+
   await setLastSyncTime(changes.server_time);
 
   return {

@@ -389,6 +389,12 @@ begin
         )
       )
     ),
+    'user_list_settings', (
+      select coalesce(json_agg(row_to_json(uls)), '[]'::json)
+      from public.user_list_settings uls
+      where uls.updated_at > last_sync
+      and uls.user_id = auth.uid()
+    ),
     'server_time', now()
   )
   into result;
