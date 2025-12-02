@@ -3,6 +3,15 @@
   // Shows list header, add item input, and sorted items
 
   import { ShoppingCart, CheckCircle, Plus } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import {
+    Card,
+    CardContent,
+    CardFooter,
+    CardHeader,
+    CardTitle
+  } from '$lib/components/ui/card';
   import ListItem from './ListItem.svelte';
   import type { List, Item } from '$lib/types';
   import { isActiveItem } from '$lib/types';
@@ -100,9 +109,9 @@
   }
 </script>
 
-<article class="list-card">
-  <!-- Header -->
-  <header class="card-header">
+<Card class="list-card">
+  <!-- Header (desktop only) -->
+  <CardHeader class="card-header">
     <div class="header-left">
       <!-- List type icon -->
       {#if list.type === 'shopping'}
@@ -112,7 +121,7 @@
       {/if}
 
       <!-- List title -->
-      <h2 class="list-title">{list.title}</h2>
+      <CardTitle class="list-title">{list.title}</CardTitle>
     </div>
 
     <!-- Shared badge -->
@@ -121,75 +130,78 @@
     {:else if list.is_shared}
       <span class="shared-badge">Shared</span>
     {/if}
-  </header>
+  </CardHeader>
 
-  <!-- Add item input -->
-  <form class="add-item-form" onsubmit={handleAddItem}>
-    <input
-      type="text"
-      class="add-item-input"
-      placeholder="Add item..."
-      bind:value={newItemText}
-      disabled={isAdding}
-      aria-label="Add new item"
-    />
-    <button
-      type="submit"
-      class="add-button"
-      disabled={isAdding || !newItemText.trim()}
-      aria-label="Add item"
-    >
-      <Plus size={20} />
-    </button>
-  </form>
+  <CardContent class="card-content">
+    <!-- Add item form -->
+    <form class="add-item-form" onsubmit={handleAddItem}>
+      <Input
+        type="text"
+        class="add-item-input"
+        placeholder="Add item..."
+        bind:value={newItemText}
+        disabled={isAdding}
+        aria-label="Add new item"
+      />
+      <Button
+        type="submit"
+        size="icon"
+        class="add-button"
+        disabled={isAdding || !newItemText.trim()}
+        aria-label="Add item"
+      >
+        <Plus size={20} />
+      </Button>
+    </form>
 
-  <!-- Items list -->
-  <div class="items-container">
-    {#if uncheckedItems.length === 0 && checkedItems.length === 0}
-      <!-- Empty state -->
-      <div class="empty-state">
-        <p class="empty-text">No items yet</p>
-      </div>
-    {:else}
-      <!-- Unchecked items -->
-      {#each uncheckedItems as item (item.id)}
-        <ListItem
-          {item}
-          onToggle={onToggleItem}
-          onEdit={onEditItem}
-          onDelete={onDeleteItem}
-        />
-      {/each}
+    <!-- Items list -->
+    <div class="items-container">
+      {#if uncheckedItems.length === 0 && checkedItems.length === 0}
+        <!-- Empty state -->
+        <div class="empty-state">
+          <p class="empty-text">No items yet</p>
+        </div>
+      {:else}
+        <!-- Unchecked items -->
+        {#each uncheckedItems as item (item.id)}
+          <ListItem
+            {item}
+            onToggle={onToggleItem}
+            onEdit={onEditItem}
+            onDelete={onDeleteItem}
+          />
+        {/each}
 
-      <!-- Separator between unchecked and checked -->
-      {#if uncheckedItems.length > 0 && checkedItems.length > 0}
-        <div class="separator"></div>
+        <!-- Separator between unchecked and checked -->
+        {#if uncheckedItems.length > 0 && checkedItems.length > 0}
+          <div class="separator"></div>
+        {/if}
+
+        <!-- Checked items -->
+        {#each checkedItems as item (item.id)}
+          <ListItem
+            {item}
+            onToggle={onToggleItem}
+            onEdit={onEditItem}
+            onDelete={onDeleteItem}
+          />
+        {/each}
       {/if}
-
-      <!-- Checked items -->
-      {#each checkedItems as item (item.id)}
-        <ListItem
-          {item}
-          onToggle={onToggleItem}
-          onEdit={onEditItem}
-          onDelete={onDeleteItem}
-        />
-      {/each}
-    {/if}
-  </div>
+    </div>
+  </CardContent>
 
   <!-- Footer with count -->
   {#if totalCount > 0}
-    <footer class="card-footer">
+    <CardFooter class="card-footer">
       <span class="item-count">
         {checkedCount} of {totalCount} completed
       </span>
-    </footer>
+    </CardFooter>
   {/if}
-</article>
+</Card>
 
 <style>
-  .list-card {
+  :global(.list-card) {
     /* Layout */
     display: flex;
     flex-direction: column;
@@ -199,44 +211,33 @@
     max-width: 600px;
     width: 100%;
 
-    /* Style */
-    background-color: var(--bg-secondary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-
-    /* Spacing */
-    padding: var(--space-4);
-
     /* Overflow */
     overflow: hidden;
   }
 
   /* Mobile: full width, no max */
   @media (max-width: 1023px) {
-    .list-card {
+    :global(.list-card) {
       min-width: unset;
       max-width: unset;
       border-radius: 0;
       box-shadow: none;
-      padding: var(--space-4) var(--space-3);
     }
   }
 
   /* Header */
-  .card-header {
+  :global(.card-header) {
     /* Layout */
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-
-    /* Spacing */
-    margin-bottom: var(--space-4);
   }
 
   /* Mobile: hide list header (shown in app header instead) */
   @media (max-width: 1023px) {
-    .card-header {
+    :global(.card-header) {
       display: none;
     }
   }
@@ -251,27 +252,17 @@
   }
 
   /* Class is applied to Lucide icon components */
-  /* svelte-ignore css-unused-selector */
-  .list-icon {
+  :global(.list-icon) {
     /* Color */
     color: var(--text-secondary);
     flex-shrink: 0;
   }
 
-  .list-title {
-    /* Typography */
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-    font-family: var(--font-heading);
-
+  :global(.list-title) {
     /* Text handling */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    /* Reset */
-    margin: 0;
   }
 
   .shared-badge {
@@ -288,6 +279,20 @@
     padding: var(--space-1) var(--space-2);
   }
 
+  :global(.card-content) {
+    /* Layout */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-4) !important;
+  }
+
+  @media (max-width: 1023px) {
+    :global(.card-content) {
+      padding: var(--space-4) var(--space-3) !important;
+    }
+  }
+
   /* Add item form */
   .add-item-form {
     /* Layout */
@@ -298,82 +303,19 @@
     margin-bottom: var(--space-4);
   }
 
-  .add-item-input {
+  :global(.add-item-input) {
     /* Layout */
     flex: 1;
 
     /* Size */
     height: 44px;
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-
-    /* Typography */
-    font-size: var(--text-base);
-    font-family: var(--font-body);
-
-    /* Spacing */
-    padding: 0 var(--space-3);
-
-    /* Transition */
-    transition: border-color var(--transition-fast);
   }
 
-  .add-item-input::placeholder {
-    color: var(--text-muted);
-  }
-
-  .add-item-input:focus {
-    border-color: var(--border-focus);
-    outline: none;
-  }
-
-  .add-item-input:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .add-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-
+  :global(.add-button) {
     /* Size */
     width: 44px;
     height: 44px;
-
-    /* Style */
-    background-color: var(--accent-primary);
-    border: none;
-    border-radius: var(--radius-md);
-    color: var(--text-inverse);
-    cursor: pointer;
-
-    /* Transition */
-    transition: background-color var(--transition-fast), opacity var(--transition-fast);
-  }
-
-  .add-button:hover:not(:disabled) {
-    background-color: var(--accent-hover);
-  }
-
-  .add-button:active:not(:disabled) {
-    background-color: var(--accent-muted);
-  }
-
-  .add-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .add-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+    flex-shrink: 0;
   }
 
   /* Items container */
@@ -419,13 +361,6 @@
   /* Mobile: constrain height to fill screen without browser scroll */
   @media (max-width: 1023px) {
     .items-container {
-      /* Calculate available space:
-         - Header: 56px (fixed)
-         - Add form: 60px (44px height + 16px margin-bottom)
-         - Footer: 50px (when visible)
-         - Pagination dots: 40px (fixed at bottom)
-         - Card padding: 32px (16px top + 16px bottom)
-         Total: 238px */
       max-height: calc(100vh - 238px);
       min-height: calc(100vh - 238px);
     }
@@ -433,8 +368,6 @@
 
   @media (min-width: 1024px) {
     .items-container {
-      /* Dynamically adjust height to available viewport space */
-      /* Subtracting approximate height of: header (~60px) + add form (~60px) + footer (~50px) + padding/margins (~80px) + app header (~60px) + buffer (~40px) */
       max-height: calc(100vh - 350px);
     }
   }
@@ -490,7 +423,7 @@
   }
 
   /* Footer */
-  .card-footer {
+  :global(.card-footer) {
     /* Layout */
     display: flex;
     align-items: center;
