@@ -312,9 +312,6 @@
   }
 
   :global(.add-button) {
-    /* Size */
-    width: 44px;
-    height: 44px;
     flex-shrink: 0;
   }
 
