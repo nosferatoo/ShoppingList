@@ -11,6 +11,8 @@
   import EditListsModal from '$lib/components/EditListsModal.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
+  import { db } from '$lib/db/local';
+  import type { SyncResult } from '$lib/db/sync';
   import {
     Carousel,
     CarouselContent,
@@ -350,6 +352,78 @@
       console.error('Sync failed:', error);
     }
   }
+
+  // Load lists from IndexedDB
+  async function loadListsFromIndexedDB() {
+    if (!browser || !authStore.userId) return;
+
+    try {
+      // Get all lists for the current user from IndexedDB
+      const lists = await db.getUserLists(authStore.userId);
+
+      // Get user list settings to determine order
+      const userSettings = await db.userListSettings
+        .where('user_id')
+        .equals(authStore.userId)
+        .toArray();
+
+      // Build ListWithItems array
+      const listsWithItems: ListWithItems[] = [];
+
+      for (const list of lists) {
+        // Get items for this list
+        const items = await db.getListItems(list.id);
+
+        // Get position from user settings
+        const setting = userSettings.find(s => s.list_id === list.id);
+        const position = setting?.position ?? 0;
+
+        listsWithItems.push({
+          list,
+          position,
+          items
+        });
+      }
+
+      // Sort by position
+      listsWithItems.sort((a, b) => a.position - b.position);
+
+      // Update local state
+      listsData = listsWithItems;
+
+      console.log('Loaded lists from IndexedDB:', listsWithItems.length);
+    } catch (error) {
+      console.error('Failed to load lists from IndexedDB:', error);
+    }
+  }
+
+  // Listen for sync completion and remote changes
+  $effect(() => {
+    if (!browser) return;
+
+    const handleRemoteChange = () => {
+      console.log('Remote change detected, reloading data...');
+      loadListsFromIndexedDB();
+    };
+
+    const handleSyncComplete = (event: Event) => {
+      const syncEvent = event as CustomEvent<SyncResult>;
+      console.log('Sync complete:', syncEvent.detail);
+
+      if (syncEvent.detail.hasRemoteChanges) {
+        console.log('Sync pulled remote changes, reloading data...');
+        loadListsFromIndexedDB();
+      }
+    };
+
+    window.addEventListener('remote-change', handleRemoteChange);
+    window.addEventListener('sync-complete', handleSyncComplete);
+
+    return () => {
+      window.removeEventListener('remote-change', handleRemoteChange);
+      window.removeEventListener('sync-complete', handleSyncComplete);
+    };
+  });
 </script>
 
 <svelte:head>
