@@ -837,8 +837,8 @@
       align-items: center;
       justify-content: center;
 
-      /* Spacing */
-      padding: var(--space-6);
+      /* Spacing - extra top/bottom padding to avoid overlap with floating controls */
+      padding: calc(var(--space-6) * 3) var(--space-6);
       overflow: hidden;
     }
 
