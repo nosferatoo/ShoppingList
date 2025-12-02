@@ -205,6 +205,7 @@
     /* Layout */
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 
     /* Size */
     min-width: 300px;
