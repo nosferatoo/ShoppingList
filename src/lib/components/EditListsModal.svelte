@@ -3,6 +3,11 @@
   // Full-screen on mobile, modal on desktop
 
   import { X, GripVertical, ShoppingCart, CheckCircle, Trash2, Plus, Pencil } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Badge } from '$lib/components/ui/badge';
   import type { ListWithItems, List, ListType } from '$lib/types';
   import { db } from '$lib/db/local';
 
@@ -383,14 +388,15 @@
       <!-- Header -->
       <header class="panel-header">
         <h2 id="edit-lists-title" class="panel-title">Edit Lists</h2>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon"
           class="close-button"
           onclick={onClose}
           aria-label="Close edit lists"
         >
           <X size={24} />
-        </button>
+        </Button>
       </header>
 
       <!-- Content -->
@@ -426,32 +432,34 @@
 
                   <!-- Badges -->
                   {#if listData.list.is_shared && !isOwner(listData.list)}
-                    <span class="shared-badge shared-with-me">Shared with you</span>
+                    <Badge variant="secondary" class="shared-badge shared-with-me">Shared with you</Badge>
                   {:else if listData.list.is_shared}
-                    <span class="shared-badge">Shared</span>
+                    <Badge variant="secondary" class="shared-badge">Shared</Badge>
                   {/if}
                 </div>
 
                 <!-- Edit button (only for owners) -->
                 {#if isOwner(listData.list)}
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     class="edit-button"
                     onclick={() => openRenameModal(listData.list)}
                     aria-label="Edit {listData.list.title}"
                   >
                     <Pencil size={18} />
-                  </button>
+                  </Button>
 
                   <!-- Delete button (only for owners) -->
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     class="delete-button"
                     onclick={() => openDeleteModal(listData.list)}
                     aria-label="Delete {listData.list.title}"
                   >
                     <Trash2 size={18} />
-                  </button>
+                  </Button>
                 {/if}
               </li>
             {/each}
@@ -463,14 +471,14 @@
         {/if}
 
         <!-- Add button -->
-        <button
-          type="button"
+        <Button
+          variant="outline"
           class="add-button"
           onclick={openAddModal}
         >
           <Plus size={24} />
           <span>Add new list</span>
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -492,9 +500,9 @@
         <form onsubmit={handleAddList} class="modal-form">
           <!-- Title input -->
           <div class="form-group">
-            <label for="list-title" class="form-label">List Name</label>
+            <Label for="list-title" class="form-label">List Name</Label>
             <!-- svelte-ignore a11y_autofocus -->
-            <input
+            <Input
               id="list-title"
               type="text"
               class="form-input"
@@ -514,8 +522,9 @@
           <div class="form-group">
             <span class="form-label">List Type</span>
             <div class="type-options" role="group" aria-label="List Type">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 class="type-option"
                 class:active={newListType === 'shopping'}
                 onclick={() => (newListType = 'shopping')}
@@ -523,9 +532,10 @@
               >
                 <ShoppingCart size={20} />
                 <span>Shopping</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 class="type-option"
                 class:active={newListType === 'todo'}
                 onclick={() => (newListType = 'todo')}
@@ -533,15 +543,14 @@
               >
                 <CheckCircle size={20} />
                 <span>To-Do</span>
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- Shared toggle -->
           <div class="form-group">
             <label class="checkbox-label">
-              <input
-                type="checkbox"
+              <Checkbox
                 class="checkbox-input"
                 bind:checked={newListIsShared}
                 disabled={isSaving}
@@ -555,21 +564,22 @@
 
           <!-- Actions -->
           <div class="modal-actions">
-            <button
+            <Button
               type="button"
+              variant="outline"
               class="modal-button secondary"
               onclick={closeAddModal}
               disabled={isSaving}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               class="modal-button primary"
               disabled={!newListTitle.trim() || isSaving}
             >
               {isSaving ? 'Creating...' : 'Create'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -596,22 +606,24 @@
         </p>
 
         <div class="modal-actions">
-          <button
+          <Button
             type="button"
+            variant="outline"
             class="modal-button secondary"
             onclick={closeDeleteModal}
             disabled={isSaving}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
             class="modal-button danger"
             onclick={confirmDeleteList}
             disabled={isSaving}
           >
             {isSaving ? 'Deleting...' : 'Delete'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -634,9 +646,9 @@
         <form onsubmit={handleRenameList} class="modal-form">
           <!-- Title input -->
           <div class="form-group">
-            <label for="rename-title" class="form-label">List Name</label>
+            <Label for="rename-title" class="form-label">List Name</Label>
             <!-- svelte-ignore a11y_autofocus -->
-            <input
+            <Input
               id="rename-title"
               type="text"
               class="form-input"
@@ -650,8 +662,9 @@
           <div class="form-group">
             <span class="form-label">List Type</span>
             <div class="type-options" role="group" aria-label="List Type">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 class="type-option"
                 class:active={renameType === 'shopping'}
                 onclick={() => (renameType = 'shopping')}
@@ -659,9 +672,10 @@
               >
                 <ShoppingCart size={20} />
                 <span>Shopping</span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 class="type-option"
                 class:active={renameType === 'todo'}
                 onclick={() => (renameType = 'todo')}
@@ -669,15 +683,14 @@
               >
                 <CheckCircle size={20} />
                 <span>To-Do</span>
-              </button>
+              </Button>
             </div>
           </div>
 
           <!-- Shared toggle -->
           <div class="form-group">
             <label class="checkbox-label">
-              <input
-                type="checkbox"
+              <Checkbox
                 class="checkbox-input"
                 bind:checked={renameIsShared}
                 disabled={isSaving}
@@ -691,21 +704,22 @@
 
           <!-- Actions -->
           <div class="modal-actions">
-            <button
+            <Button
               type="button"
+              variant="outline"
               class="modal-button secondary"
               onclick={closeRenameModal}
               disabled={isSaving}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               class="modal-button primary"
               disabled={!renameTitle.trim() || isSaving}
             >
               {isSaving ? 'Saving...' : 'Save'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -853,40 +867,13 @@
     margin: 0;
   }
 
-  .close-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Size */
-    width: 44px;
-    height: 44px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-secondary);
-
-    /* Transition */
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
+  /* Custom styling for close button */
+  :global(.close-button) {
+    color: var(--text-secondary) !important;
   }
 
-  .close-button:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
-  }
-
-  .close-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.close-button:hover) {
+    color: var(--text-primary) !important;
   }
 
   /* ============================================================================
@@ -1019,153 +1006,67 @@
     flex: 1;
   }
 
-  .shared-badge {
-    /* Layout */
+  /* Custom styling for shared badge */
+  :global(.shared-badge) {
     flex-shrink: 0;
-
-    /* Typography */
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    padding: var(--space-1) var(--space-2);
   }
 
-  .edit-button {
-    /* Layout - visible on mobile and desktop */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* Custom styling for edit button */
+  :global(.edit-button) {
     flex-shrink: 0;
-
-    /* Size */
-    width: 40px;
-    height: 40px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    color: #6b9bd1;
-
-    /* Transition */
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                opacity var(--transition-fast);
+    color: #6b9bd1 !important;
   }
 
   @media (min-width: 1024px) {
-    .edit-button {
+    :global(.edit-button) {
       opacity: 0;
       pointer-events: none;
     }
 
-    .list-item:hover .edit-button {
+    .list-item:hover :global(.edit-button) {
       opacity: 1;
       pointer-events: auto;
     }
   }
 
-  .edit-button:hover {
-    color: #3b82f6;
-    background-color: rgba(59, 130, 246, 0.1);
+  :global(.edit-button:hover) {
+    color: #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
   }
 
-  .edit-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  .delete-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* Custom styling for delete button */
+  :global(.delete-button) {
     flex-shrink: 0;
-
-    /* Size */
-    width: 40px;
-    height: 40px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    color: #e89090;
-
-    /* Transition */
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                opacity var(--transition-fast);
+    color: #e89090 !important;
   }
 
   @media (min-width: 1024px) {
-    .delete-button {
+    :global(.delete-button) {
       opacity: 0;
       pointer-events: none;
     }
 
-    .list-item:hover .delete-button {
+    .list-item:hover :global(.delete-button) {
       opacity: 1;
       pointer-events: auto;
     }
   }
 
-  .delete-button:hover {
-    color: #ef4444;
-    background-color: rgba(239, 68, 68, 0.1);
-  }
-
-  .delete-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.delete-button:hover) {
+    color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.1) !important;
   }
 
   /* ============================================================================
      ADD BUTTON
      ============================================================================ */
 
-  .add-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-
-    /* Size */
+  /* Custom styling for add button */
+  :global(.add-button) {
     width: 100%;
     min-height: 56px;
-
-    /* Style */
-    background: none;
-    border: 2px dashed var(--border-default);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-
-    /* Typography */
-    font-size: var(--text-base);
-    font-weight: var(--font-medium);
-    color: var(--text-secondary);
-
-    /* Spacing */
-    padding: var(--space-4);
-
-    /* Transition */
-    transition: border-color var(--transition-fast), color var(--transition-fast);
-  }
-
-  .add-button:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-  }
-
-  .add-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+    gap: var(--space-2) !important;
+    border-style: dashed !important;
   }
 
   /* ============================================================================
@@ -1275,43 +1176,9 @@
     margin: 0;
   }
 
-  .form-input {
-    /* Size */
-    height: 44px;
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-
-    /* Typography */
-    font-size: var(--text-base);
-    font-family: var(--font-body);
-
-    /* Spacing */
-    padding: 0 var(--space-3);
-
-    /* Transition */
-    transition: border-color var(--transition-fast);
-  }
-
-  .form-input::placeholder {
-    color: var(--text-muted);
-  }
-
-  .form-input:focus {
-    border-color: var(--border-focus);
-    outline: none;
-  }
-
-  .form-input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .form-input.error {
-    border-color: var(--error);
+  /* Custom styling for form input */
+  :global(.form-input.error) {
+    border-color: var(--error) !important;
   }
 
   .error-message {
@@ -1343,51 +1210,21 @@
     gap: var(--space-3);
   }
 
-  .type-option {
-    /* Layout */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-
-    /* Size */
+  /* Custom styling for type option buttons */
+  :global(.type-option) {
+    flex-direction: column !important;
     min-height: 80px;
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border: 2px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Typography */
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-    color: var(--text-secondary);
-
-    /* Transition */
-    transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+    gap: var(--space-2) !important;
   }
 
-  .type-option:hover:not(:disabled) {
-    border-color: var(--accent-primary);
-    background-color: var(--bg-hover);
+  :global(.type-option:hover:not(:disabled)) {
+    border-color: var(--accent-primary) !important;
   }
 
-  .type-option.active {
-    border-color: var(--accent-primary);
-    background-color: rgba(249, 115, 22, 0.1);
-    color: var(--accent-primary);
-  }
-
-  .type-option:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .type-option:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.type-option.active) {
+    border-color: var(--accent-primary) !important;
+    background-color: rgba(249, 115, 22, 0.1) !important;
+    color: var(--accent-primary) !important;
   }
 
   /* Modal actions */
@@ -1401,71 +1238,22 @@
     margin-top: var(--space-2);
   }
 
-  .modal-button {
-    /* Size */
+  /* Custom styling for modal buttons */
+  :global(.modal-button) {
     min-width: 100px;
-    height: 44px;
-
-    /* Style */
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Typography */
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    font-family: var(--font-body);
-
-    /* Transition */
-    transition: background-color var(--transition-fast), opacity var(--transition-fast);
-
-    /* Spacing */
-    padding: 0 var(--space-4);
   }
 
-  .modal-button.primary {
-    background-color: var(--accent-primary);
-    color: var(--text-inverse);
+  :global(.modal-button.primary) {
+    background-color: var(--accent-primary) !important;
+    color: var(--text-inverse) !important;
   }
 
-  .modal-button.primary:hover:not(:disabled) {
-    background-color: var(--accent-hover);
+  :global(.modal-button.primary:hover:not(:disabled)) {
+    background-color: var(--accent-hover) !important;
   }
 
-  .modal-button.primary:active:not(:disabled) {
-    background-color: var(--accent-muted);
-  }
-
-  .modal-button.secondary {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-  }
-
-  .modal-button.secondary:hover:not(:disabled) {
-    background-color: var(--bg-hover);
-  }
-
-  .modal-button.danger {
-    background-color: var(--error);
-    color: var(--text-inverse);
-  }
-
-  .modal-button.danger:hover:not(:disabled) {
-    background-color: #dc2626;
-  }
-
-  .modal-button.danger:active:not(:disabled) {
-    background-color: #b91c1c;
-  }
-
-  .modal-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .modal-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.modal-button.primary:active:not(:disabled)) {
+    background-color: var(--accent-muted) !important;
   }
 
   /* Delete modal specific styles */
@@ -1516,21 +1304,9 @@
     border-color: var(--border-default);
   }
 
-  .checkbox-input {
-    /* Size */
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
+  /* Custom styling for checkbox */
+  :global(.checkbox-input) {
     margin-top: 2px;
-
-    /* Style */
-    cursor: pointer;
-    accent-color: var(--accent-primary);
-  }
-
-  .checkbox-input:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
   }
 
   .checkbox-text {
