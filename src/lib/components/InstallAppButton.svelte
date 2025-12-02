@@ -10,6 +10,8 @@
    * ```
    */
   import { onMount } from 'svelte';
+  import { Download, X } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
   import { showInstallPrompt, isInstalled } from '$lib/pwa/serviceWorkerHelper';
 
   let showButton = $state(false);
@@ -70,22 +72,29 @@
 
 {#if showButton}
   <div class="install-container">
-    <button class="install-button" onclick={handleInstall} disabled={installing}>
+    <Button
+      variant="default"
+      class="install-button"
+      onclick={handleInstall}
+      disabled={installing}
+    >
       {#if installing}
         <span class="spinner"></span>
         <span>Installing...</span>
       {:else}
-        <svg class="install-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
+        <Download size={20} />
         <span>Install App</span>
       {/if}
-    </button>
-    <button class="dismiss-button" onclick={handleDismiss} aria-label="Dismiss">
-      ×
-    </button>
+    </Button>
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      class="dismiss-button-icon"
+      onclick={handleDismiss}
+      aria-label="Dismiss"
+    >
+      <X size={20} />
+    </Button>
   </div>
 {/if}
 
@@ -96,40 +105,19 @@
     gap: 0.5rem;
   }
 
-  .install-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(to right, #3b82f6, #2563eb);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
+  :global(.install-button) {
+    background: linear-gradient(to right, #3b82f6, #2563eb) !important;
     box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
   }
 
-  .install-button:hover:not(:disabled) {
-    background: linear-gradient(to right, #2563eb, #1d4ed8);
+  :global(.install-button:hover:not(:disabled)) {
+    background: linear-gradient(to right, #2563eb, #1d4ed8) !important;
     box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
     transform: translateY(-1px);
   }
 
-  .install-button:active:not(:disabled) {
+  :global(.install-button:active:not(:disabled)) {
     transform: translateY(0);
-  }
-
-  .install-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-
-  .install-icon {
-    width: 1.25rem;
-    height: 1.25rem;
   }
 
   .spinner {
@@ -147,25 +135,8 @@
     }
   }
 
-  .dismiss-button {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #6b7280;
-    font-size: 1.5rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .dismiss-button:hover {
-    background: #f3f4f6;
-    color: #374151;
+  :global(.dismiss-button-icon) {
+    border: 1px solid var(--border-default);
   }
 
   /* Mobile responsive */
@@ -174,7 +145,7 @@
       width: 100%;
     }
 
-    .install-button {
+    :global(.install-button) {
       flex: 1;
     }
   }

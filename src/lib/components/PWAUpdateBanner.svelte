@@ -10,6 +10,7 @@
    * ```
    */
   import { onMount, onDestroy } from 'svelte';
+  import { Button } from '$lib/components/ui/button';
   import { skipWaitingAndUpdate } from '$lib/pwa/serviceWorkerHelper';
 
   let showUpdateBanner = $state(false);
@@ -48,8 +49,12 @@
         <div class="update-description">A new version of the app is ready</div>
       </div>
       <div class="update-actions">
-        <button class="update-button" onclick={handleUpdate}>Update Now</button>
-        <button class="dismiss-button" onclick={handleDismiss}>Later</button>
+        <Button variant="secondary" class="update-button" onclick={handleUpdate}>
+          Update Now
+        </Button>
+        <Button variant="outline" class="dismiss-button" onclick={handleDismiss}>
+          Later
+        </Button>
       </div>
     </div>
   </div>
@@ -112,35 +117,23 @@
     flex-shrink: 0;
   }
 
-  .update-button,
-  .dismiss-button {
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    font-size: 0.875rem;
+  :global(.update-button) {
+    background: white !important;
+    color: #0ea5e9 !important;
   }
 
-  .update-button {
-    background: white;
-    color: #0ea5e9;
+  :global(.update-button:hover) {
+    background: #f0f9ff !important;
   }
 
-  .update-button:hover {
-    background: #f0f9ff;
-    transform: translateY(-1px);
+  :global(.dismiss-button) {
+    background: transparent !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
   }
 
-  .dismiss-button {
-    background: transparent;
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-  }
-
-  .dismiss-button:hover {
-    background: rgba(255, 255, 255, 0.1);
+  :global(.dismiss-button:hover) {
+    background: rgba(255, 255, 255, 0.1) !important;
   }
 
   /* Mobile responsive */
@@ -156,8 +149,8 @@
       flex-direction: column;
     }
 
-    .update-button,
-    .dismiss-button {
+    :global(.update-button),
+    :global(.dismiss-button) {
       width: 100%;
     }
   }

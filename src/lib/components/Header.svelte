@@ -2,7 +2,9 @@
   // App header with settings icon
   // Fixed top bar with title and settings access
 
-  import { Settings, RefreshCw, Cloud, CloudOff, Check, ShoppingCart, CheckCircle } from 'lucide-svelte';
+  import { Settings, RefreshCw, ShoppingCart, CheckCircle } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Badge } from '$lib/components/ui/badge';
   import { syncStore } from '$lib/stores/sync.svelte';
 
   interface Props {
@@ -63,7 +65,9 @@
       </h1>
 
       {#if isShared}
-        <span class="shared-badge">Shared</span>
+        <Badge variant="secondary" class="shared-badge-custom">
+          Shared
+        </Badge>
       {/if}
     </div>
 
@@ -88,14 +92,15 @@
       </div>
 
       <!-- Settings Button -->
-      <button
-        type="button"
-        class="settings-button"
+      <Button
+        variant="ghost"
+        size="icon"
+        class="settings-button-custom"
         onclick={onSettingsClick}
         aria-label="Open settings"
       >
         <Settings size={24} />
-      </button>
+      </Button>
     </div>
   </div>
 </header>
@@ -151,8 +156,7 @@
   }
 
   /* Class is applied to Lucide icon components */
-  /* svelte-ignore css-unused-selector */
-  .list-icon {
+  :global(.list-icon) {
     /* Color */
     color: var(--text-secondary);
     flex-shrink: 0;
@@ -174,18 +178,8 @@
     margin: 0;
   }
 
-  .shared-badge {
-    /* Layout */
+  :global(.shared-badge-custom) {
     flex-shrink: 0;
-
-    /* Typography */
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    padding: var(--space-1) var(--space-2);
   }
 
   /* Header Actions */
@@ -228,17 +222,6 @@
     white-space: nowrap;
   }
 
-  /* Desktop only text */
-  .desktop-only {
-    display: none;
-  }
-
-  @media (min-width: 768px) {
-    .desktop-only {
-      display: inline;
-    }
-  }
-
   /* Sync States */
   .sync-indicator.syncing {
     color: var(--accent-primary);
@@ -266,45 +249,11 @@
     color: var(--success);
   }
 
-  .settings-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Size */
-    width: 44px;
-    height: 44px;
-    min-width: 44px; /* Touch target */
-    min-height: 44px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-secondary);
-
-    /* Transition */
-    transition: color var(--transition-fast), background-color var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
+  :global(.settings-button-custom) {
+    color: var(--text-secondary) !important;
   }
 
-  .settings-button:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
-  }
-
-  .settings-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  .settings-button:active {
-    background-color: var(--bg-tertiary);
+  :global(.settings-button-custom:hover) {
+    color: var(--text-primary) !important;
   }
 </style>

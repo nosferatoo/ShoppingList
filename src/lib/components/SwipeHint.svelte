@@ -3,6 +3,7 @@
   // Shows animated hint to swipe between lists
 
   import { ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
   import { browser } from '$app/environment';
 
   interface Props {
@@ -61,9 +62,14 @@
       <p class="hint-text">Swipe left or right to navigate between lists</p>
 
       <!-- Dismiss hint -->
-      <button type="button" class="dismiss-button" onclick={handleTap}>
+      <Button
+        variant="default"
+        size="lg"
+        class="dismiss-button"
+        onclick={handleTap}
+      >
         Got it
-      </button>
+      </Button>
     </div>
   </div>
 {/if}
@@ -197,49 +203,9 @@
   }
 
   /* Dismiss button */
-  .dismiss-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Size */
-    min-width: 120px;
-    height: 48px;
-
-    /* Style */
-    background-color: var(--accent-primary);
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Typography */
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    color: var(--text-inverse);
-
-    /* Spacing */
-    padding: 0 var(--space-6);
-
-    /* Transition */
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
-
+  :global(.dismiss-button) {
     /* Prevent dismissing overlay */
     pointer-events: auto;
-  }
-
-  .dismiss-button:hover {
-    background-color: var(--accent-hover);
-    transform: scale(1.05);
-  }
-
-  .dismiss-button:active {
-    background-color: var(--accent-muted);
-    transform: scale(0.98);
-  }
-
-  .dismiss-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+    min-width: 120px;
   }
 </style>

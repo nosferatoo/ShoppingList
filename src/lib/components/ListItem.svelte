@@ -3,7 +3,9 @@
   // Mobile: Long press to reveal edit/delete
   // Desktop: Hover to show actions
 
-  import { Check, Pencil, Trash2 } from 'lucide-svelte';
+  import { Pencil, Trash2 } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
+  import { Checkbox } from '$lib/components/ui/checkbox';
   import type { Item } from '$lib/types';
 
   interface Props {
@@ -38,7 +40,7 @@
 
     // Don't trigger long press on checkbox
     const target = event.target as HTMLElement;
-    if (target.closest('.checkbox')) return;
+    if (target.closest('[data-slot="checkbox"]')) return;
 
     // If actions are already showing, toggle them off on long press
     if (showActions) {
@@ -98,6 +100,19 @@
   function handleDelete() {
     onDelete?.(item.id);
   }
+
+  // Local checked state for checkbox
+  let checked = $state(item.is_checked);
+
+  // Update checked when item changes
+  $effect(() => {
+    checked = item.is_checked;
+  });
+
+  // Handle checkbox change
+  function handleCheckboxChange() {
+    handleToggle();
+  }
 </script>
 
 <div
@@ -112,17 +127,12 @@
     ontouchmove={handleTouchMove}
   >
     <!-- Checkbox -->
-    <button
-      type="button"
-      class="checkbox"
-      class:checked={item.is_checked}
-      onclick={handleToggle}
+    <Checkbox
+      bind:checked
+      onchange={handleCheckboxChange}
+      class="checkbox-custom"
       aria-label={item.is_checked ? 'Uncheck item' : 'Check item'}
-    >
-      {#if item.is_checked}
-        <Check size={18} strokeWidth={3} />
-      {/if}
-    </button>
+    />
 
     <!-- Item text -->
     <span
@@ -134,45 +144,49 @@
 
     <!-- Action buttons (desktop hover) -->
     <div class="actions-desktop">
-      <button
-        type="button"
-        class="action-button edit"
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="action-button-edit"
         onclick={handleEdit}
         aria-label="Edit item"
       >
         <Pencil size={18} />
-      </button>
+      </Button>
 
-      <button
-        type="button"
-        class="action-button delete"
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        class="action-button-delete"
         onclick={handleDelete}
         aria-label="Delete item"
       >
         <Trash2 size={18} />
-      </button>
+      </Button>
     </div>
   </div>
 
   <!-- Action buttons (mobile long press) -->
   <div class="actions-mobile">
-    <button
-      type="button"
-      class="action-button edit"
+    <Button
+      variant="ghost"
+      size="icon"
+      class="action-button-edit"
       onclick={handleEdit}
       aria-label="Edit item"
     >
       <Pencil size={18} />
-    </button>
+    </Button>
 
-    <button
-      type="button"
-      class="action-button delete"
+    <Button
+      variant="ghost"
+      size="icon"
+      class="action-button-delete"
       onclick={handleDelete}
       aria-label="Delete item"
     >
       <Trash2 size={18} />
-    </button>
+    </Button>
   </div>
 </div>
 
@@ -218,52 +232,15 @@
     }
   }
 
-  /* Checkbox */
-  .checkbox {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* Custom checkbox styling */
+  :global(.checkbox-custom) {
     flex-shrink: 0;
-
-    /* Size */
-    width: 24px;
-    height: 24px;
-
-    /* Style */
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-sm);
-    background-color: transparent;
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-inverse);
-
-    /* Transition */
-    transition: all var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
   }
 
   @media (min-width: 1024px) {
-    .checkbox {
+    :global(.checkbox-custom) {
       margin-top: 2px;
     }
-  }
-
-  .checkbox:hover {
-    border-color: var(--accent-primary);
-  }
-
-  .checkbox.checked {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-  }
-
-  .checkbox:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
   }
 
   /* Item text */
@@ -361,93 +338,23 @@
     }
   }
 
-  /* Action buttons */
-  .action-button {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Size */
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-
-    /* Transition */
-    transition: color var(--transition-fast),
-                background-color var(--transition-fast),
-                opacity var(--transition-fast);
-
-    /* Reset */
-    padding: 0;
+  /* Action button colors */
+  :global(.action-button-edit) {
+    color: #6b9bd1 !important;
   }
 
-  .action-button:active {
-    opacity: 0.8;
+  :global(.action-button-edit:hover) {
+    color: #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
   }
 
-  .action-button.edit {
-    color: #6b9bd1;
-    background: none;
+  :global(.action-button-delete) {
+    color: #e89090 !important;
   }
 
-  .action-button.edit:active {
-    color: #3b82f6;
-    background-color: rgba(59, 130, 246, 0.1);
-  }
-
-  .action-button.delete {
-    color: #e89090;
-    background: none;
-  }
-
-  .action-button.delete:active {
-    color: #ef4444;
-    background-color: rgba(239, 68, 68, 0.1);
-  }
-
-  /* Desktop action button styling */
-  @media (min-width: 1024px) {
-    .action-button {
-      width: 40px;
-      height: 40px;
-      min-width: 40px;
-      background: none;
-      border-radius: var(--radius-md);
-      transition: color var(--transition-fast),
-                  background-color var(--transition-fast);
-    }
-
-    .action-button.edit {
-      color: #6b9bd1;
-      background: none;
-    }
-
-    .action-button.edit:hover {
-      color: #3b82f6;
-      background-color: rgba(59, 130, 246, 0.1);
-    }
-
-    .action-button.delete {
-      color: #e89090;
-      background: none;
-    }
-
-    .action-button.delete:hover {
-      color: #ef4444;
-      background-color: rgba(239, 68, 68, 0.1);
-    }
-
-    .action-button:focus-visible {
-      outline: 2px solid var(--border-focus);
-      outline-offset: 2px;
-    }
+  :global(.action-button-delete:hover) {
+    color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.1) !important;
   }
 
   /* Touch feedback for mobile */
