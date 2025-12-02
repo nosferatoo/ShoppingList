@@ -315,7 +315,9 @@
     flex-shrink: 0;
     flex-grow: 0;
     width: 32px !important;
+    height: 32px !important;
     min-width: 32px !important;
+    min-height: 32px !important;
   }
 
   /* Items container */
