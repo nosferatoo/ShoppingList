@@ -115,37 +115,37 @@
 /* ============================================================================
    TAILWIND THEME INTEGRATION
    ============================================================================ */
-@theme {
-  /* shadcn-svelte required colors for Tailwind utilities */
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
+@theme inline {
+  /* shadcn-svelte required colors - reference existing CSS variables */
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
 
-  --color-card: #141414;
-  --color-card-foreground: #fafafa;
+  --color-card: var(--bg-secondary);
+  --color-card-foreground: var(--text-primary);
 
-  --color-primary: #f97316;
-  --color-primary-foreground: #0a0a0a;
+  --color-primary: var(--accent-primary);
+  --color-primary-foreground: var(--text-inverse);
 
-  --color-secondary: #141414;
-  --color-secondary-foreground: #fafafa;
+  --color-secondary: var(--bg-secondary);
+  --color-secondary-foreground: var(--text-primary);
 
-  --color-muted: #1f1f1f;
-  --color-muted-foreground: #a3a3a3;
+  --color-muted: var(--bg-tertiary);
+  --color-muted-foreground: var(--text-secondary);
 
-  --color-accent: #f97316;
-  --color-accent-foreground: #0a0a0a;
+  --color-accent: var(--accent-primary);
+  --color-accent-foreground: var(--text-inverse);
 
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #fafafa;
+  --color-destructive: var(--error);
+  --color-destructive-foreground: var(--text-primary);
 
-  --color-border: #404040;
-  --color-input: #1f1f1f;
-  --color-ring: #f97316;
+  --color-border: var(--border-default);
+  --color-input: var(--bg-tertiary);
+  --color-ring: var(--border-focus);
 
   /* Radius for rounded corners */
-  --radius-lg: 0.75rem;
-  --radius-md: 0.5rem;
-  --radius-sm: 0.25rem;
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+  --radius-sm: var(--radius-sm);
 }
 
 /* ============================================================================
@@ -153,7 +153,7 @@
    ============================================================================ */
 @layer base {
   * {
-    @apply border-border-default;
+    border-color: var(--border-default);
   }
 
   body {
