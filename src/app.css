@@ -115,51 +115,37 @@
 /* ============================================================================
    TAILWIND THEME INTEGRATION
    ============================================================================ */
-@theme inline {
-  /* Map custom properties to Tailwind theme */
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-tertiary: var(--bg-tertiary);
-  --color-bg-hover: var(--bg-hover);
+@theme {
+  /* shadcn-svelte required colors for Tailwind utilities */
+  --color-background: #0a0a0a;
+  --color-foreground: #fafafa;
 
-  --color-accent-primary: var(--accent-primary);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-muted: var(--accent-muted);
+  --color-card: #141414;
+  --color-card-foreground: #fafafa;
 
-  --color-blue-dark: var(--blue-dark);
-  --color-blue-medium: var(--blue-medium);
-  --color-blue-light: var(--blue-light);
+  --color-primary: #f97316;
+  --color-primary-foreground: #0a0a0a;
 
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-  --color-text-inverse: var(--text-inverse);
+  --color-secondary: #141414;
+  --color-secondary-foreground: #fafafa;
 
-  --color-success: var(--success);
-  --color-error: var(--error);
-  --color-warning: var(--warning);
+  --color-muted: #1f1f1f;
+  --color-muted-foreground: #a3a3a3;
 
-  --color-border-subtle: var(--border-subtle);
-  --color-border-default: var(--border-default);
-  --color-border-focus: var(--border-focus);
+  --color-accent: #f97316;
+  --color-accent-foreground: #0a0a0a;
 
-  /* Legacy shadcn-svelte compatibility */
-  --color-background: var(--bg-primary);
-  --color-foreground: var(--text-primary);
-  --color-card: var(--bg-secondary);
-  --color-card-foreground: var(--text-primary);
-  --color-primary: var(--accent-primary);
-  --color-primary-foreground: var(--text-inverse);
-  --color-secondary: var(--bg-secondary);
-  --color-secondary-foreground: var(--text-primary);
-  --color-muted: var(--text-muted);
-  --color-muted-foreground: var(--text-secondary);
-  --color-accent: var(--accent-primary);
-  --color-accent-foreground: var(--text-inverse);
-  --color-destructive: var(--error);
-  --color-border: var(--border-default);
-  --color-input: var(--bg-tertiary);
-  --color-ring: var(--border-focus);
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+
+  --color-border: #404040;
+  --color-input: #1f1f1f;
+  --color-ring: #f97316;
+
+  /* Radius for rounded corners */
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.25rem;
 }
 
 /* ============================================================================
