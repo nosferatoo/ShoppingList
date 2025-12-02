@@ -3,6 +3,7 @@
   // Displays toast messages at the bottom of the screen with optional undo action
 
   import { X } from 'lucide-svelte';
+  import { Button } from '$lib/components/ui/button';
   import { toastStore } from '$lib/stores/toast.svelte';
   import type { ToastNotification } from '$lib/types';
 
@@ -32,25 +33,27 @@
 
       <!-- Action button (e.g., UNDO) -->
       {#if toast.action}
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           class="toast-action"
           onclick={() => handleAction(toast)}
           aria-label={toast.action.label}
         >
           {toast.action.label}
-        </button>
+        </Button>
       {/if}
 
       <!-- Close button -->
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon-sm"
         class="toast-close"
         onclick={() => handleClose(toast)}
         aria-label="Close notification"
       >
         <X size={16} />
-      </button>
+      </Button>
     </div>
   {/each}
 </div>
@@ -133,89 +136,27 @@
     white-space: nowrap;
   }
 
-  /* Action button */
-  .toast-action {
-    /* Layout */
+  /* Action button - custom styling for shadcn Button */
+  :global(.toast-action) {
     flex-shrink: 0;
-
-    /* Typography */
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    color: var(--accent-primary);
     text-transform: uppercase;
     letter-spacing: 0.025em;
-
-    /* Style */
-    background: none;
-    border: none;
-    cursor: pointer;
-
-    /* Spacing */
-    padding: var(--space-1) var(--space-2);
-    margin: calc(var(--space-1) * -1) 0;
-
-    /* Transition */
-    transition: color var(--transition-fast);
-
-    /* Reset */
-    outline: none;
+    color: var(--accent-primary) !important;
   }
 
-  .toast-action:hover {
-    color: var(--accent-hover);
+  :global(.toast-action:hover) {
+    color: var(--accent-hover) !important;
   }
 
-  .toast-action:active {
-    color: var(--accent-muted);
-  }
-
-  .toast-action:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-    border-radius: var(--radius-sm);
-  }
-
-  /* Close button */
-  .toast-close {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* Close button - custom styling for shadcn Button */
+  :global(.toast-close) {
     flex-shrink: 0;
-
-    /* Size */
-    width: 24px;
-    height: 24px;
-
-    /* Style */
-    background: none;
-    border: none;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-
-    /* Color */
-    color: var(--text-secondary);
-
-    /* Spacing */
-    padding: 0;
     margin-left: var(--space-1);
-
-    /* Transition */
-    transition: color var(--transition-fast), background-color var(--transition-fast);
+    color: var(--text-secondary) !important;
   }
 
-  .toast-close:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
-  }
-
-  .toast-close:active {
-    background-color: var(--bg-tertiary);
-  }
-
-  .toast-close:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
+  :global(.toast-close:hover) {
+    color: var(--text-primary) !important;
   }
 
   /* Desktop styles */
