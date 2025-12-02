@@ -145,12 +145,12 @@
       />
       <Button
         type="submit"
-        size="icon"
+        size="icon-sm"
         class="add-button"
         disabled={isAdding || !newItemText.trim()}
         aria-label="Add item"
       >
-        <Plus size={20} />
+        <Plus size={18} />
       </Button>
     </form>
 
