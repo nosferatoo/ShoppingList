@@ -10,6 +10,7 @@
   interface Props {
     list: List;
     items: Item[];
+    userId: string;
     onAddItem?: (listId: number, text: string) => void;
     onToggleItem?: (id: number) => void;
     onEditItem?: (id: number) => void;
@@ -19,11 +20,17 @@
   let {
     list,
     items,
+    userId,
     onAddItem,
     onToggleItem,
     onEditItem,
     onDeleteItem
   }: Props = $props();
+
+  // Helper function to check if current user is the owner
+  function isOwner(): boolean {
+    return list.owner_id === userId;
+  }
 
   // Input state
   let newItemText = $state('');
@@ -109,7 +116,9 @@
     </div>
 
     <!-- Shared badge -->
-    {#if list.is_shared}
+    {#if list.is_shared && !isOwner()}
+      <span class="shared-badge shared-with-me">Shared with you</span>
+    {:else if list.is_shared}
       <span class="shared-badge">Shared</span>
     {/if}
   </header>

@@ -121,12 +121,14 @@ export class ListsDatabase extends Dexie {
 
   /**
    * Get all active (non-deleted) lists for a user
+   * Includes both owned lists and shared lists
    */
   async getUserLists(userId: string): Promise<LocalList[]> {
     return await this.lists
-      .where('owner_id')
-      .equals(userId)
-      .filter((list) => list.deleted_at === null)
+      .filter((list) =>
+        list.deleted_at === null &&
+        (list.owner_id === userId || list.is_shared === true)
+      )
       .toArray();
   }
 

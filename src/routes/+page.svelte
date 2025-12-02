@@ -466,6 +466,7 @@
                 <ListCard
                   list={listData.list}
                   items={listData.items}
+                  userId={authStore.userId || ''}
                   onAddItem={handleAddItem}
                   onToggleItem={handleToggleItem}
                   onEditItem={handleEditItem}
@@ -508,6 +509,7 @@
                   <ListCard
                     list={listData.list}
                     items={listData.items}
+                    userId={authStore.userId || ''}
                     onAddItem={handleAddItem}
                     onToggleItem={handleToggleItem}
                     onEditItem={handleEditItem}
