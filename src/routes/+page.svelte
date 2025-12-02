@@ -838,7 +838,7 @@
       justify-content: center;
 
       /* Spacing - extra top/bottom padding to avoid overlap with floating controls */
-      padding: calc(var(--space-6) * 3) var(--space-6);
+      padding: calc(var(--space-6) * 3 + 12px) var(--space-6);
       overflow: hidden;
     }
 
