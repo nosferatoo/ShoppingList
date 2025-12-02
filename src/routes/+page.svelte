@@ -424,10 +424,7 @@
             opts={{
               align: 'start',
               loop: false,
-              slidesToScroll: 1,
-              containScroll: 'trimSnaps',
-              skipSnaps: false,
-              dragFree: false
+              slidesToScroll: 1
             }}
             class="carousel-container"
           >
@@ -779,22 +776,29 @@
       width: 100%;
     }
 
-    /* Carousel viewport - inset to make room for arrows */
+    /* Carousel viewport */
     :global(.carousel-viewport) {
-      margin: 0 80px;
+      overflow: hidden;
     }
 
     /* Carousel content */
     :global(.carousel-content-wrapper) {
-      gap: var(--space-6);
-      justify-content: center;
+      gap: 0; /* Option 2: No gap. For Option 1 (backup), change to: var(--space-4) */
+      justify-content: flex-start;
     }
 
-    /* Each carousel item - use natural width from ListCard */
+    /* Each carousel item - full viewport width for single slide view */
     :global(.carousel-item-wrapper) {
-      flex: 0 0 auto;
-      width: auto;
+      flex: 0 0 100%;
       min-width: 0;
+      display: flex;
+      justify-content: center;
+
+      /* Option 2: Add horizontal padding for breathing room */
+      padding: 0 var(--space-6);
+
+      /* Option 1 (backup): If padding doesn't work, uncomment line below and remove padding above
+         Then also change .carousel-content-wrapper gap from 0 to var(--space-4) */
     }
 
     /* ========================================================================

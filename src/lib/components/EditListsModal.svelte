@@ -378,12 +378,8 @@
                   <GripVertical size={20} />
                 </div>
 
-                <!-- List content (clickable to rename on mobile) -->
-                <button
-                  type="button"
-                  class="list-content"
-                  onclick={() => openRenameModal(listData.list)}
-                >
+                <!-- List content -->
+                <div class="list-content">
                   <!-- Icon -->
                   {#if listData.list.type === 'shopping'}
                     <ShoppingCart size={20} class="list-icon" />
@@ -398,9 +394,9 @@
                   {#if listData.list.is_shared}
                     <span class="shared-badge">Shared</span>
                   {/if}
-                </button>
+                </div>
 
-                <!-- Edit button (desktop only) -->
+                <!-- Edit button -->
                 <button
                   type="button"
                   class="edit-button"
@@ -958,21 +954,8 @@
     flex: 1;
     min-width: 0;
 
-    /* Style */
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-
     /* Spacing */
     padding: 0;
-  }
-
-  @media (min-width: 1024px) {
-    .list-content {
-      pointer-events: none;
-      cursor: default;
-    }
   }
 
   /* Class is applied to Lucide icon components */
@@ -1013,8 +996,8 @@
   }
 
   .edit-button {
-    /* Layout - hidden on mobile, visible on desktop */
-    display: none;
+    /* Layout - visible on mobile and desktop */
+    display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
@@ -1038,7 +1021,6 @@
 
   @media (min-width: 1024px) {
     .edit-button {
-      display: flex;
       opacity: 0;
       pointer-events: none;
     }

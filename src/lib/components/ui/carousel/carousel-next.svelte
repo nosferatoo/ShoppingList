@@ -68,7 +68,7 @@
   }
 
   .carousel-next {
-    right: 0;
+    right: var(--space-4);
   }
 
   .carousel-button:hover:not(:disabled) {

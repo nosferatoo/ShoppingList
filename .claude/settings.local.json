@@ -10,7 +10,10 @@
       "Bash(ipconfig:*)",
       "WebSearch",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:www.embla-carousel.com)",
+      "WebFetch(domain:github.com)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

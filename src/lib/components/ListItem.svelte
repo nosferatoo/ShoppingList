@@ -40,9 +40,17 @@
     const target = event.target as HTMLElement;
     if (target.closest('.checkbox')) return;
 
-    longPressTimer = setTimeout(() => {
-      showActions = true;
-    }, 500); // 500ms for long press
+    // If actions are already showing, toggle them off on long press
+    if (showActions) {
+      longPressTimer = setTimeout(() => {
+        showActions = false;
+      }, 500); // 500ms for long press
+    } else {
+      // Otherwise, show actions on long press
+      longPressTimer = setTimeout(() => {
+        showActions = true;
+      }, 500); // 500ms for long press
+    }
   }
 
   function handleTouchEnd() {
@@ -366,14 +374,15 @@
     min-width: 48px;
 
     /* Style */
+    background: none;
     border: none;
+    border-radius: var(--radius-md);
     cursor: pointer;
 
-    /* Color */
-    color: white;
-
     /* Transition */
-    transition: opacity var(--transition-fast);
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                opacity var(--transition-fast);
 
     /* Reset */
     padding: 0;
@@ -384,11 +393,23 @@
   }
 
   .action-button.edit {
-    background-color: var(--blue-medium);
+    color: #6b9bd1;
+    background: none;
+  }
+
+  .action-button.edit:active {
+    color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
   }
 
   .action-button.delete {
-    background-color: var(--error);
+    color: #e89090;
+    background: none;
+  }
+
+  .action-button.delete:active {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
   }
 
   /* Desktop action button styling */
