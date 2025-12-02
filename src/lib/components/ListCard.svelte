@@ -216,6 +216,13 @@
     overflow: hidden;
   }
 
+  /* Desktop: fixed width to prevent shrinking during content changes */
+  @media (min-width: 1024px) {
+    :global(.list-card) {
+      width: 600px;
+    }
+  }
+
   /* Mobile: full width, no max */
   @media (max-width: 1023px) {
     :global(.list-card) {
