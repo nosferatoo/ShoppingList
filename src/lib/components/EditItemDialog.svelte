@@ -24,7 +24,7 @@
   let {
     item,
     listName = '',
-    isOpen = $bindable(),
+    isOpen,
     onSave,
     onClose
   }: Props = $props();
@@ -46,7 +46,6 @@
       try {
         isSaving = true;
         await onSave?.(item.id, editText.trim());
-        isOpen = false;
         onClose?.();
       } catch (err) {
         console.error('Failed to save item:', err);
@@ -59,7 +58,14 @@
   // Handle cancel
   function handleCancel() {
     if (!isSaving) {
-      isOpen = false;
+      onClose?.();
+    }
+  }
+
+  // Handle dialog open change - called when dialog closes via ESC or overlay click
+  function handleOpenChange(open: boolean) {
+    if (!open && !isSaving) {
+      // Dialog is closing, call onClose immediately
       onClose?.();
     }
   }
@@ -74,20 +80,19 @@
 </script>
 
 {#if item}
-  <Dialog bind:open={isOpen}>
-    <DialogContent class="max-w-lg">
+  <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <DialogContent class="max-w-lg" showCloseButton={false}>
       <DialogHeader>
-        <DialogTitle>
-          {#if listName}
-            Edit Item - {listName}
-          {:else}
-            Edit Item
-          {/if}
-        </DialogTitle>
+        <DialogTitle class="text-xl font-semibold">Edit Item</DialogTitle>
       </DialogHeader>
 
       <div class="grid gap-4 py-4">
         <div class="grid gap-2">
+          {#if listName}
+            <p class="mb-4 text-muted-foreground leading-relaxed">
+              You are editing item in <strong class="font-semibold text-foreground">{listName}</strong> list
+            </p>
+          {/if}
           <Label for="item-text">Item text</Label>
           <Input
             id="item-text"

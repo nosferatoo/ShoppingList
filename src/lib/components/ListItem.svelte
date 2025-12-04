@@ -10,17 +10,19 @@
 
   interface Props {
     item: Item;
+    showActions?: boolean;
     onToggle?: (id: number) => void;
     onEdit?: (id: number) => void;
     onDelete?: (id: number) => void;
+    onActionToggle?: (shouldShow: boolean) => void;
   }
 
-  let { item, onToggle, onEdit, onDelete }: Props = $props();
+  let { item, showActions = false, onToggle, onEdit, onDelete, onActionToggle }: Props = $props();
 
   // Long press state
-  let showActions = $state(false);
   let isDesktop = $state(false);
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  let wasLongPress = $state(false);
 
   // Detect desktop on mount
   $effect(() => {
@@ -38,6 +40,8 @@
   function handleTouchStart(event: TouchEvent) {
     if (isDesktop) return;
 
+    wasLongPress = false;
+
     // Don't trigger long press on checkbox
     const target = event.target as HTMLElement;
     if (target.closest('[data-slot="checkbox"]')) return;
@@ -45,12 +49,14 @@
     // If actions are already showing, toggle them off on long press
     if (showActions) {
       longPressTimer = setTimeout(() => {
-        showActions = false;
+        wasLongPress = true;
+        onActionToggle?.(false);
       }, 500); // 500ms for long press
     } else {
       // Otherwise, show actions on long press
       longPressTimer = setTimeout(() => {
-        showActions = true;
+        wasLongPress = true;
+        onActionToggle?.(true);
       }, 500); // 500ms for long press
     }
   }
@@ -60,6 +66,11 @@
       clearTimeout(longPressTimer);
       longPressTimer = null;
     }
+
+    // Reset wasLongPress after a short delay to allow click handler to check it
+    setTimeout(() => {
+      wasLongPress = false;
+    }, 100);
   }
 
   function handleTouchMove() {
@@ -70,54 +81,55 @@
     }
   }
 
-  // Close actions when clicking outside
-  function handleClickOutside(event: MouseEvent) {
-    if (!isDesktop && showActions) {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.item-wrapper')) {
-        showActions = false;
-      }
-    }
-  }
-
-  // Add global click listener
-  $effect(() => {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('click', handleClickOutside);
-      return () => window.removeEventListener('click', handleClickOutside);
-    }
-  });
-
   function handleToggle() {
     onToggle?.(item.id);
+    // Hide actions when checking/unchecking
+    onActionToggle?.(false);
   }
 
   function handleEdit() {
     onEdit?.(item.id);
-    showActions = false;
+    onActionToggle?.(false);
+  }
+
+  // Handle regular click (tap) to hide actions on any item
+  function handleItemClick(event: MouseEvent) {
+    if (isDesktop) return;
+
+    // Don't process click if it was a long press
+    if (wasLongPress) {
+      return;
+    }
+
+    // Don't hide if clicking on action buttons
+    const target = event.target as HTMLElement;
+    if (target.closest('.actions-mobile')) {
+      return;
+    }
+
+    // Hide actions when clicking any item (including checkbox)
+    onActionToggle?.(false);
   }
 
   function handleDelete() {
     onDelete?.(item.id);
   }
 
-  // Local checked state for checkbox
-  let checked = $state(item.is_checked);
-
-  // Update checked when item changes
-  $effect(() => {
-    checked = item.is_checked;
-  });
-
-  // Handle checkbox change
-  function handleCheckboxChange() {
-    handleToggle();
+  // Handle checkbox change - call parent toggle handler
+  function handleCheckboxChange(value: boolean | 'indeterminate') {
+    // Only handle boolean values
+    if (typeof value === 'boolean') {
+      handleToggle();
+    }
   }
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="item-wrapper"
   class:show-actions={showActions}
+  onclick={handleItemClick}
 >
   <!-- Main item content -->
   <div
@@ -128,8 +140,8 @@
   >
     <!-- Checkbox -->
     <Checkbox
-      bind:checked
-      onchange={handleCheckboxChange}
+      checked={item.is_checked}
+      onCheckedChange={handleCheckboxChange}
       class="checkbox-custom"
       aria-label={item.is_checked ? 'Uncheck item' : 'Check item'}
     />
@@ -199,6 +211,9 @@
     /* Border */
     border-bottom: 1px solid var(--border-subtle);
 
+    /* Spacing */
+    margin: 0 var(--space-3);
+
     /* Transition */
     transition: background-color var(--transition-fast);
   }
@@ -210,7 +225,7 @@
   .item-content {
     /* Layout */
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: var(--space-3);
 
     /* Size */
@@ -227,7 +242,6 @@
 
   @media (min-width: 1024px) {
     .item-content {
-      align-items: flex-start;
       padding: var(--space-3) var(--space-4);
     }
   }
@@ -235,12 +249,15 @@
   /* Custom checkbox styling */
   :global(.checkbox-custom) {
     flex-shrink: 0;
+    width: 24px !important;
+    height: 24px !important;
+    margin-top: 2px !important;
   }
 
-  @media (min-width: 1024px) {
-    :global(.checkbox-custom) {
-      margin-top: 2px;
-    }
+  /* Increase checkmark icon size */
+  :global(.checkbox-custom svg) {
+    width: 18px !important;
+    height: 18px !important;
   }
 
   /* Item text */
@@ -253,28 +270,19 @@
     color: var(--text-primary);
     line-height: var(--leading-normal);
 
-    /* Text handling */
+    /* Text handling - allow wrapping on both mobile and desktop */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+
+    /* Limit to 2 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 
     /* Transition */
     transition: color var(--transition-fast);
-  }
-
-  @media (min-width: 1024px) {
-    .item-text {
-      /* Allow wrapping on desktop */
-      white-space: normal;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-
-      /* Limit to 2 lines */
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
   }
 
   .item-text.checked {
@@ -338,23 +346,65 @@
     }
   }
 
-  /* Action button colors */
+  /* Action button colors - aligned with design system */
   :global(.action-button-edit) {
-    color: #6b9bd1 !important;
+    /* Style */
+    background-color: var(--bg-secondary) !important;
+    color: var(--blue-medium) !important; /* Blue tint on mobile */
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+
+    /* Transition */
+    transition: all var(--transition-fast) !important;
   }
 
-  :global(.action-button-edit:hover) {
-    color: #3b82f6 !important;
-    background-color: rgba(59, 130, 246, 0.1) !important;
+  /* Desktop: gray default, blue on hover */
+  @media (min-width: 1024px) {
+    :global(.action-button-edit) {
+      color: var(--text-secondary) !important;
+    }
+
+    :global(.action-button-edit:hover) {
+      background-color: var(--blue-medium) !important;
+      color: var(--text-inverse) !important;
+      border-color: var(--blue-medium) !important;
+      box-shadow: var(--shadow-sm) !important;
+      transform: scale(1.05) !important;
+    }
+  }
+
+  :global(.action-button-edit:active) {
+    transform: scale(0.98) !important;
   }
 
   :global(.action-button-delete) {
-    color: #e89090 !important;
+    /* Style */
+    background-color: var(--bg-secondary) !important;
+    color: var(--error) !important; /* Red tint on mobile */
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+
+    /* Transition */
+    transition: all var(--transition-fast) !important;
   }
 
-  :global(.action-button-delete:hover) {
-    color: #ef4444 !important;
-    background-color: rgba(239, 68, 68, 0.1) !important;
+  /* Desktop: gray default, red on hover */
+  @media (min-width: 1024px) {
+    :global(.action-button-delete) {
+      color: var(--text-secondary) !important;
+    }
+
+    :global(.action-button-delete:hover) {
+      background-color: var(--error) !important;
+      color: var(--text-inverse) !important;
+      border-color: var(--error) !important;
+      box-shadow: var(--shadow-sm) !important;
+      transform: scale(1.05) !important;
+    }
+  }
+
+  :global(.action-button-delete:active) {
+    transform: scale(0.98) !important;
   }
 
   /* Touch feedback for mobile */

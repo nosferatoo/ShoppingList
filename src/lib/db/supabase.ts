@@ -31,7 +31,7 @@ export function createSupabaseServerClient(
   cookies: {
     get: (name: string) => string | undefined;
     set: (name: string, value: string, options: any) => void;
-    remove: (name: string, options: any) => void;
+    delete: (name: string, options: any) => void;
   }
 ) {
   return createServerClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
@@ -49,7 +49,7 @@ export function createSupabaseServerClient(
         });
       },
       remove(key, options) {
-        cookies.remove(key, {
+        cookies.delete(key, {
           ...options,
           path: '/'
         });

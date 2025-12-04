@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus } from 'lucide-svelte';
+  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import Settings from '$lib/components/Settings.svelte';
@@ -34,6 +34,8 @@
 
   // State
   let currentListIndex = $state(0);
+  let currentCarouselIndex = $state(0);
+  let carouselApi = $state<any>(null);
   let isSettingsOpen = $state(false);
   let isEditListsModalOpen = $state(false);
   let isUserDropdownOpen = $state(false);
@@ -44,11 +46,15 @@
   let deletingItemId = $state<number | null>(null);
   let deletingItemName = $state<string>('');
   let deletingItemListName = $state<string>('');
+  let isLandscape = $state(false);
 
   // Manual swipe detection
   let touchStartX = $state(0);
   let touchStartY = $state(0);
   let touchStartTime = $state(0);
+
+  // Reset trigger for hiding item actions on swipe
+  let resetActionsTrigger = $state(0);
 
   // Check if user has seen swipe hint before
   const SWIPE_HINT_KEY = 'swipe-hint-seen';
@@ -66,9 +72,40 @@
     }
   });
 
+  // Detect landscape orientation on mobile
+  $effect(() => {
+    if (!browser) return;
+
+    const checkOrientation = () => {
+      const isMobile = window.matchMedia('(max-width: 1023px)').matches;
+      const isLandscapeOrientation = window.matchMedia('(orientation: landscape)').matches;
+      isLandscape = isMobile && isLandscapeOrientation;
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  });
+
   // Derived
   let currentList = $derived(listsData[currentListIndex]);
   let hasMultipleLists = $derived(listsData.length > 1);
+
+  // Item counts for current list
+  let currentListTotalCount = $derived.by(() => {
+    if (!currentList) return 0;
+    return currentList.items.filter(item => !item.deleted_at).length;
+  });
+
+  let currentListCheckedCount = $derived.by(() => {
+    if (!currentList) return 0;
+    return currentList.items.filter(item => !item.deleted_at && item.is_checked).length;
+  });
 
   // Manual swipe detection handlers
   function handleTouchStart(e: TouchEvent) {
@@ -90,11 +127,15 @@
         // Swipe right = previous list
         if (currentListIndex > 0) {
           currentListIndex--;
+          // Hide item actions on swipe
+          resetActionsTrigger++;
         }
       } else {
         // Swipe left = next list
         if (currentListIndex < listsData.length - 1) {
           currentListIndex++;
+          // Hide item actions on swipe
+          resetActionsTrigger++;
         }
       }
 
@@ -424,6 +465,29 @@
       window.removeEventListener('sync-complete', handleSyncComplete);
     };
   });
+
+  // Track carousel slide changes
+  $effect(() => {
+    if (!carouselApi) return;
+
+    const updateIndex = () => {
+      currentCarouselIndex = carouselApi.selectedScrollSnap();
+    };
+
+    carouselApi.on('select', updateIndex);
+    updateIndex();
+
+    return () => {
+      carouselApi.off('select', updateIndex);
+    };
+  });
+
+  // Navigate to specific carousel slide
+  function navigateToCarouselSlide(index: number) {
+    if (carouselApi) {
+      carouselApi.scrollTo(index);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -438,6 +502,8 @@
     title={currentList?.list.title || 'Lists'}
     listType={currentList?.list.type}
     isShared={currentList?.list.is_shared}
+    totalCount={currentListTotalCount}
+    checkedCount={currentListCheckedCount}
     onSettingsClick={handleSettingsClick}
   />
 
@@ -467,6 +533,7 @@
                   list={listData.list}
                   items={listData.items}
                   userId={authStore.userId || ''}
+                  resetActionsTrigger={resetActionsTrigger}
                   onAddItem={handleAddItem}
                   onToggleItem={handleToggleItem}
                   onEditItem={handleEditItem}
@@ -496,6 +563,7 @@
       <div class="desktop-view">
         <div class="carousel-wrapper">
           <Carousel
+            bind:api={carouselApi}
             opts={{
               align: 'start',
               loop: false,
@@ -518,9 +586,25 @@
                 </CarouselItem>
               {/each}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <div class="carousel-controls-bottom-left">
+              <CarouselPrevious />
+              <CarouselNext />
+            </div>
           </Carousel>
+
+          <!-- Pagination dots - Bottom Right -->
+          {#if listsData.length > 1}
+            <div class="carousel-dots-bottom-right">
+              {#each listsData as _, index}
+                <button
+                  class="carousel-dot"
+                  class:active={index === currentCarouselIndex}
+                  onclick={() => navigateToCarouselSlide(index)}
+                  aria-label="View {listsData[index].list.title}"
+                ></button>
+              {/each}
+            </div>
+          {/if}
         </div>
 
         <!-- Floating controls - Top Left (User Info & Dropdown) -->
@@ -596,12 +680,13 @@
           <!-- Edit Lists Button -->
           <button
             type="button"
-            class="action-button-floating"
+            class="action-button-floating edit-lists-button"
             onclick={handleEditLists}
             aria-label="Edit lists"
             title="Edit lists"
           >
-            <ListPlus size={20} />
+            <ListPlus size={18} />
+            <span class="button-text">Edit lists</span>
           </button>
         </div>
       </div>
@@ -627,8 +712,10 @@
   <!-- Delete Confirmation Dialog -->
   <ConfirmDialog
     isOpen={deletingItemId !== null}
-    title={deletingItemListName ? `Delete Item - ${deletingItemListName}` : 'Delete Item'}
-    message={deletingItemName ? `Are you sure you want to delete "${deletingItemName}"? This action cannot be undone.` : 'Are you sure you want to delete this item? This action cannot be undone.'}
+    title="Delete Item"
+    message={deletingItemName && deletingItemListName ? `Are you sure you want to delete "${deletingItemName}" from the ${deletingItemListName} list? This action cannot be undone.` : 'Are you sure you want to delete this item? This action cannot be undone.'}
+    itemName={deletingItemName || undefined}
+    listName={deletingItemListName || undefined}
     confirmText="Delete"
     cancelText="Cancel"
     variant="danger"
@@ -638,6 +725,14 @@
 
   <!-- Swipe Hint (mobile only, first use) -->
   <SwipeHint isVisible={showSwipeHint} onDismiss={handleDismissSwipeHint} />
+
+  <!-- Landscape Hint (mobile only) -->
+  {#if isLandscape}
+    <div class="landscape-hint">
+      <RotateCcw size={20} />
+      <span>Portrait mode recommended</span>
+    </div>
+  {/if}
 
   <!-- Edit Lists Modal -->
   <EditListsModal
@@ -668,7 +763,7 @@
     flex-direction: column;
 
     /* Spacing - account for fixed header on mobile */
-    margin-top: 56px;
+    margin-top: 64px;
   }
 
   @media (min-width: 1024px) {
@@ -777,14 +872,14 @@
     justify-content: center;
     gap: var(--space-2);
 
-    /* Spacing */
-    padding: var(--space-4);
-    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    /* Spacing - minimal padding */
+    padding: var(--space-2) var(--space-4);
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
 
-    /* Background for visibility */
+    /* Background for visibility - minimal gradient */
     background: linear-gradient(
       to top,
-      var(--bg-primary) 70%,
+      var(--bg-primary) 80%,
       transparent 100%
     );
   }
@@ -837,8 +932,8 @@
       align-items: center;
       justify-content: center;
 
-      /* Spacing - extra top/bottom padding to avoid overlap with floating controls */
-      padding: calc(var(--space-6) * 3 + 12px) var(--space-6);
+      /* Spacing - extra top padding to avoid overlap with floating controls, minimal bottom */
+      padding: calc(var(--space-6) * 3 + 12px) var(--space-6) calc(var(--space-6) + 60px);
       overflow: hidden;
     }
 
@@ -850,6 +945,66 @@
     /* Carousel container */
     :global(.carousel-container) {
       width: 100%;
+      position: relative;
+    }
+
+    /* Carousel controls - Bottom Left */
+    .carousel-controls-bottom-left {
+      position: fixed;
+      bottom: 28px;
+      left: calc(var(--space-6) + 120px);
+      z-index: 50;
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    /* Override absolute positioning of carousel buttons */
+    .carousel-controls-bottom-left :global(.carousel-button) {
+      position: static !important;
+      transform: none !important;
+    }
+
+    /* Carousel dots - Centered */
+    .carousel-dots-bottom-right {
+      position: fixed;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .carousel-dot {
+      /* Size */
+      width: 8px;
+      height: 8px;
+
+      /* Style */
+      border-radius: var(--radius-full);
+      background-color: var(--text-muted);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+
+      /* Transition */
+      transition: background-color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .carousel-dot:hover {
+      background-color: var(--text-secondary);
+      transform: scale(1.2);
+    }
+
+    .carousel-dot.active {
+      background-color: var(--accent-primary);
+      transform: scale(1.3);
+    }
+
+    .carousel-dot:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
     }
 
     /* Carousel viewport */
@@ -870,7 +1025,7 @@
       justify-content: center;
 
       /* Option 2: Add horizontal padding for breathing room */
-      padding: 0 var(--space-6);
+      padding: 0 var(--space-3);
 
       /* Option 1 (backup): If padding doesn't work, uncomment line below and remove padding above
          Then also change .carousel-content-wrapper gap from 0 to var(--space-4) */
@@ -963,8 +1118,8 @@
     }
 
     .user-email-floating {
-      /* Typography - smaller */
-      font-size: 13px;
+      /* Typography */
+      font-size: var(--text-base);
       font-weight: var(--font-medium);
       color: var(--text-primary);
       line-height: 1.2;
@@ -1112,6 +1267,20 @@
                   transform var(--transition-fast);
     }
 
+    /* Edit Lists Button with text */
+    .action-button-floating.edit-lists-button {
+      /* Size - wider to accommodate text */
+      width: auto;
+      gap: var(--space-2);
+      padding: 0 var(--space-4);
+    }
+
+    .button-text {
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      white-space: nowrap;
+    }
+
     .action-button-floating:hover:not(:disabled) {
       color: var(--text-primary);
       background-color: var(--bg-hover);
@@ -1243,6 +1412,68 @@
 
     .sync-button-floating:disabled {
       cursor: not-allowed;
+    }
+  }
+
+  /* ============================================================================
+     LANDSCAPE HINT - Mobile only
+     ============================================================================ */
+
+  .landscape-hint {
+    /* Position */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+
+    /* Size */
+    padding: var(--space-8) var(--space-10);
+    min-width: 280px;
+
+    /* Style */
+    background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+
+    /* Typography */
+    color: #ffffff;
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    /* Animation */
+    animation: fadeIn var(--transition-normal) ease-out;
+  }
+
+  .landscape-hint :global(svg) {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  /* Hide on desktop */
+  @media (min-width: 1024px) {
+    .landscape-hint {
+      display: none;
     }
   }
 </style>

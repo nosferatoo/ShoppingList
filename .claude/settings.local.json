@@ -16,7 +16,13 @@
       "mcp__ide__getDiagnostics",
       "Bash(git checkout:*)",
       "Bash(npx shadcn-svelte@latest add:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 5 curl:*)",
+      "Bash(test:*)",
+      "WebFetch(domain:tweakcn.com)",
+      "Bash(node scripts/convert-icon.js:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

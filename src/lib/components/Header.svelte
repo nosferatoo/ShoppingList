@@ -11,10 +11,12 @@
     title?: string;
     listType?: 'shopping' | 'todo';
     isShared?: boolean;
+    totalCount?: number;
+    checkedCount?: number;
     onSettingsClick?: () => void;
   }
 
-  let { title = 'Lists', listType, isShared = false, onSettingsClick }: Props = $props();
+  let { title = 'Lists', listType, isShared = false, totalCount = 0, checkedCount = 0, onSettingsClick }: Props = $props();
 
   // Sync status from store
   let isSyncing = $derived(syncStore.isSyncing);
@@ -60,9 +62,17 @@
         {/if}
       {/if}
 
-      <h1 class="header-title">
-        {title}
-      </h1>
+      <div class="header-title-section">
+        <h1 class="header-title">
+          {title}
+        </h1>
+
+        {#if totalCount > 0}
+          <span class="item-count">
+            {checkedCount} of {totalCount} completed
+          </span>
+        {/if}
+      </div>
 
       {#if isShared}
         <Badge variant="secondary" class="shared-badge-custom">
@@ -115,7 +125,7 @@
     z-index: 50;
 
     /* Size */
-    height: 56px;
+    height: 64px;
 
     /* Background */
     background-color: var(--bg-secondary);
@@ -162,12 +172,23 @@
     flex-shrink: 0;
   }
 
+  .header-title-section {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+  }
+
   .header-title {
     /* Typography */
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
     color: var(--text-primary);
     font-family: var(--font-heading);
+    line-height: 1.2;
 
     /* Text handling */
     overflow: hidden;
@@ -178,8 +199,20 @@
     margin: 0;
   }
 
+  .item-count {
+    /* Typography */
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.2;
+
+    /* Reset */
+    margin: 0;
+  }
+
   :global(.shared-badge-custom) {
     flex-shrink: 0;
+    margin-left: auto;
+    margin-right: var(--space-3);
   }
 
   /* Header Actions */
@@ -201,8 +234,8 @@
     background-color: var(--bg-tertiary);
     border-radius: var(--radius-md);
 
-    /* Spacing */
-    padding: var(--space-2) var(--space-3);
+    /* Spacing - compact for icon-only on mobile */
+    padding: var(--space-2);
 
     /* Typography */
     font-size: var(--text-sm);
@@ -220,6 +253,9 @@
     /* Typography */
     font-size: var(--text-sm);
     white-space: nowrap;
+
+    /* Hide on mobile to save space */
+    display: none;
   }
 
   /* Sync States */

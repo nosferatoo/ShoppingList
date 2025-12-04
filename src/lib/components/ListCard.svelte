@@ -8,7 +8,6 @@
   import {
     Card,
     CardContent,
-    CardFooter,
     CardHeader,
     CardTitle
   } from '$lib/components/ui/card';
@@ -20,6 +19,7 @@
     list: List;
     items: Item[];
     userId: string;
+    resetActionsTrigger?: number;
     onAddItem?: (listId: number, text: string) => void;
     onToggleItem?: (id: number) => void;
     onEditItem?: (id: number) => void;
@@ -30,6 +30,7 @@
     list,
     items,
     userId,
+    resetActionsTrigger = 0,
     onAddItem,
     onToggleItem,
     onEditItem,
@@ -44,6 +45,22 @@
   // Input state
   let newItemText = $state('');
   let isAdding = $state(false);
+
+  // Track which item has actions showing (mobile long-press)
+  let activeItemId = $state<number | null>(null);
+
+  // Handle item action visibility
+  function handleItemActionToggle(itemId: number, shouldShow: boolean) {
+    activeItemId = shouldShow ? itemId : null;
+  }
+
+  // Reset actions when resetActionsTrigger changes (e.g., on swipe)
+  $effect(() => {
+    // Watch for changes to resetActionsTrigger
+    if (resetActionsTrigger > 0) {
+      activeItemId = null;
+    }
+  });
 
   // Sorted items
   let activeItems = $derived(items.filter(isActiveItem));
@@ -120,8 +137,18 @@
         <CheckCircle size={20} class="list-icon" />
       {/if}
 
-      <!-- List title -->
-      <CardTitle class="list-title">{list.title}</CardTitle>
+      <!-- Title and count stacked -->
+      <div class="header-title-section">
+        <!-- List title -->
+        <CardTitle class="list-title">{list.title}</CardTitle>
+
+        <!-- Item count -->
+        {#if totalCount > 0}
+          <span class="item-count">
+            {checkedCount} of {totalCount} completed
+          </span>
+        {/if}
+      </div>
     </div>
 
     <!-- Shared badge -->
@@ -133,25 +160,28 @@
   </CardHeader>
 
   <CardContent class="card-content">
-    <!-- Add item form -->
+    <!-- Add item form - Integrated input with button -->
     <form class="add-item-form" onsubmit={handleAddItem}>
-      <Input
-        type="text"
-        class="add-item-input"
-        placeholder="Add item..."
-        bind:value={newItemText}
-        disabled={isAdding}
-        aria-label="Add new item"
-      />
-      <Button
-        type="submit"
-        size="icon-sm"
-        class="add-button"
-        disabled={isAdding || !newItemText.trim()}
-        aria-label="Add item"
-      >
-        <Plus size={18} />
-      </Button>
+      <div class="input-with-button">
+        <Input
+          type="text"
+          class="add-item-input"
+          placeholder="Add item..."
+          bind:value={newItemText}
+          disabled={isAdding}
+          aria-label="Add new item"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          variant="ghost"
+          class="add-button-integrated"
+          disabled={isAdding || !newItemText.trim()}
+          aria-label="Add item"
+        >
+          <Plus size={20} />
+        </Button>
+      </div>
     </form>
 
     <!-- Items list -->
@@ -166,9 +196,11 @@
         {#each uncheckedItems as item (item.id)}
           <ListItem
             {item}
+            showActions={activeItemId === item.id}
             onToggle={onToggleItem}
             onEdit={onEditItem}
             onDelete={onDeleteItem}
+            onActionToggle={(shouldShow) => handleItemActionToggle(item.id, shouldShow)}
           />
         {/each}
 
@@ -181,23 +213,16 @@
         {#each checkedItems as item (item.id)}
           <ListItem
             {item}
+            showActions={activeItemId === item.id}
             onToggle={onToggleItem}
             onEdit={onEditItem}
             onDelete={onDeleteItem}
+            onActionToggle={(shouldShow) => handleItemActionToggle(item.id, shouldShow)}
           />
         {/each}
       {/if}
     </div>
   </CardContent>
-
-  <!-- Footer with count -->
-  {#if totalCount > 0}
-    <CardFooter class="card-footer">
-      <span class="item-count">
-        {checkedCount} of {totalCount} completed
-      </span>
-    </CardFooter>
-  {/if}
 </Card>
 
 <style>
@@ -252,7 +277,7 @@
   .header-left {
     /* Layout */
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-3);
     flex: 1;
     min-width: 0; /* Allow text truncation */
@@ -263,6 +288,16 @@
     /* Color */
     color: var(--text-secondary);
     flex-shrink: 0;
+    margin-top: 2px; /* Align with title text */
+  }
+
+  .header-title-section {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
   }
 
   :global(.list-title) {
@@ -270,6 +305,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .item-count {
+    /* Typography */
+    font-size: var(--text-sm);
+    color: var(--text-muted);
   }
 
   .shared-badge {
@@ -291,40 +332,76 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: var(--space-4) !important;
+    padding: 0 var(--space-4) 0 !important;
   }
 
   @media (max-width: 1023px) {
     :global(.card-content) {
-      padding: var(--space-4) var(--space-3) !important;
+      padding: 0 var(--space-3) 0 !important;
     }
   }
 
   /* Add item form */
   .add-item-form {
-    /* Layout */
-    display: flex;
-    gap: var(--space-2);
-
     /* Spacing */
     margin-bottom: var(--space-4);
+  }
+
+  /* Integrated input with button */
+  .input-with-button {
+    /* Layout */
+    position: relative;
+    display: flex;
+    align-items: center;
   }
 
   :global(.add-item-input) {
     /* Layout */
     flex: 1;
+    padding-right: 48px !important;
 
     /* Size */
     height: 44px;
   }
 
-  :global(.add-button) {
-    flex-shrink: 0;
-    flex-grow: 0;
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
+  :global(.add-button-integrated) {
+    /* Position */
+    position: absolute;
+    right: 4px;
+
+    /* Size */
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+
+    /* Style - Button appearance */
+    background-color: var(--accent-primary) !important;
+    color: var(--text-inverse) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: background-color var(--transition-fast),
+                box-shadow var(--transition-fast),
+                transform var(--transition-fast) !important;
+  }
+
+  :global(.add-button-integrated:hover:not(:disabled)) {
+    background-color: var(--accent-hover) !important;
+    box-shadow: var(--shadow-md) !important;
+    transform: scale(1.05) !important;
+  }
+
+  :global(.add-button-integrated:active:not(:disabled)) {
+    background-color: var(--accent-muted) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transform: scale(0.98) !important;
+  }
+
+  :global(.add-button-integrated:disabled) {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-muted) !important;
   }
 
   /* Items container */
@@ -333,6 +410,9 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+
+    /* Background */
+    background-color: var(--bg-primary);
 
     /* Spacing */
     margin: 0 calc(var(--space-4) * -1);
@@ -370,14 +450,20 @@
   /* Mobile: constrain height to fill screen without browser scroll */
   @media (max-width: 1023px) {
     .items-container {
-      max-height: calc(100vh - 238px);
-      min-height: calc(100vh - 238px);
+      height: calc(100vh - 208px);
+      max-height: calc(100vh - 208px);
+      min-height: calc(100vh - 208px);
+      flex-shrink: 0;
     }
   }
 
+  /* Desktop: fixed height to prevent resize when filtering */
   @media (min-width: 1024px) {
     .items-container {
+      height: calc(100vh - 350px);
       max-height: calc(100vh - 350px);
+      min-height: calc(100vh - 350px);
+      flex-shrink: 0;
     }
   }
 
@@ -409,20 +495,27 @@
 
   /* Separator */
   .separator {
-    /* Size */
-    height: 1px;
+    /* Position */
+    position: relative;
 
-    /* Style */
-    background: repeating-linear-gradient(
-      to right,
-      var(--border-subtle) 0,
-      var(--border-subtle) 8px,
-      transparent 8px,
-      transparent 16px
-    );
+    /* Size */
+    height: var(--space-3);
+
+    /* Background */
+    background-color: var(--bg-secondary);
 
     /* Spacing */
     margin: var(--space-2) var(--space-4);
+  }
+
+  .separator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    border-top: 2px dashed var(--border-default);
   }
 
   @media (max-width: 1023px) {
@@ -431,21 +524,4 @@
     }
   }
 
-  /* Footer */
-  :global(.card-footer) {
-    /* Layout */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    /* Spacing */
-    margin: 0;
-    padding: var(--space-2) var(--space-4);
-  }
-
-  .item-count {
-    /* Typography */
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
 </style>

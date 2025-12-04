@@ -38,12 +38,6 @@
 
 <style>
   .carousel-button {
-    /* Position */
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-
     /* Layout */
     display: flex;
     align-items: center;
@@ -65,10 +59,6 @@
     transition: background-color var(--transition-fast),
                 border-color var(--transition-fast),
                 opacity var(--transition-fast);
-  }
-
-  .carousel-next {
-    right: var(--space-4);
   }
 
   .carousel-button:hover:not(:disabled) {

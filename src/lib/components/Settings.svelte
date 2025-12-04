@@ -4,7 +4,6 @@
 
   import { User, ListPlus, RefreshCw, LogOut, X } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Separator } from '$lib/components/ui/separator';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
 
@@ -22,7 +21,7 @@
   let isOnline = $derived(syncStore.isOnline);
   let lastSyncAt = $derived(syncStore.lastSyncAt);
 
-  // Format last sync time
+  // Format last sync time (concise)
   let lastSyncFormatted = $derived.by(() => {
     if (!lastSyncAt) return 'Never';
 
@@ -32,11 +31,18 @@
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
 
-    if (seconds < 60) return 'Just now';
+    if (seconds < 60) return 'now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
 
     return lastSyncAt.toLocaleDateString();
+  });
+
+  // Sync status for styling
+  let syncStatus = $derived.by(() => {
+    if (!isOnline) return 'offline';
+    if (isSyncing) return 'syncing';
+    return 'synced';
   });
 
   // Handle sync button click
@@ -134,27 +140,24 @@
       <div class="panel-content">
         <!-- User Info Section -->
         <section class="settings-section">
-          <div class="user-info">
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="user-info"
+            onclick={handleLogout}
+            role="button"
+            tabindex="0"
+            aria-label="Log out"
+          >
             <div class="user-avatar">
-              <User size={24} />
+              <User size={20} />
             </div>
             <div class="user-details">
               <p class="user-email">{userEmail || 'No user'}</p>
-              <p class="user-label">Signed in</p>
+              <p class="user-label">Tap to log out</p>
             </div>
-            <Button
-              variant="outline"
-              size="icon"
-              class="logout-icon-button"
-              onclick={handleLogout}
-              aria-label="Log out"
-            >
-              <LogOut size={20} />
-            </Button>
           </div>
         </section>
-
-        <Separator />
 
         <!-- Lists Management Section -->
         <section class="settings-section">
@@ -170,28 +173,26 @@
           </Button>
         </section>
 
-        <Separator />
-
         <!-- Sync Section -->
         <section class="settings-section">
           <Button
             variant="ghost"
-            class="menu-item"
+            class="menu-item sync-button {syncStatus}"
             onclick={handleSync}
             disabled={!isOnline || isSyncing}
           >
             <div class="menu-item-icon" class:spinning={isSyncing}>
               <RefreshCw size={20} />
             </div>
-            <div class="menu-item-content">
-              <span class="menu-item-text">Sync Now</span>
-              <span class="menu-item-subtitle">
+            <div class="sync-text-container">
+              <span class="menu-item-text">Sync</span>
+              <span class="sync-status-text">
                 {#if !isOnline}
                   Offline
                 {:else if isSyncing}
                   Syncing...
                 {:else}
-                  Last synced: {lastSyncFormatted}
+                  Last: {lastSyncFormatted}
                 {/if}
               </span>
             </div>
@@ -216,8 +217,14 @@
     bottom: 0;
     z-index: 100;
 
-    /* Background - transparent on mobile, dimmed on desktop */
-    background-color: rgba(0, 0, 0, 0.2);
+    /* Layout - centered modal for both mobile and desktop */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+
+    /* Background - dimmed backdrop */
+    background-color: rgba(0, 0, 0, 0.5);
 
     /* Blur effect */
     backdrop-filter: blur(8px);
@@ -225,16 +232,6 @@
 
     /* Animation */
     animation: fadeIn var(--transition-normal) ease-out;
-  }
-
-  @media (min-width: 1024px) {
-    .backdrop {
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-4);
-    }
   }
 
   @keyframes fadeIn {
@@ -255,31 +252,27 @@
     display: flex;
     flex-direction: column;
 
-    /* Size - Full screen on mobile */
+    /* Size - Modal style for both mobile and desktop */
     width: 100%;
-    height: 100%;
+    max-width: 480px;
+    height: auto;
+    max-height: 90vh;
 
     /* Background */
     background-color: var(--bg-primary);
 
-    /* Animation - slide in from right on mobile */
-    animation: slideInRight var(--transition-normal) ease-out;
+    /* Border */
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+
+    /* Animation - scale in for both mobile and desktop */
+    animation: scaleIn var(--transition-normal) ease-out;
   }
 
-  @media (min-width: 1024px) {
+  @media (max-width: 1023px) {
     .settings-panel {
-      /* Desktop: Modal style */
-      width: 100%;
-      max-width: 480px;
-      height: auto;
-      max-height: 80vh;
-
-      /* Border */
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-xl);
-
-      /* Animation - fade in and scale up */
-      animation: scaleIn var(--transition-normal) ease-out;
+      /* Mobile: slightly smaller max width */
+      max-width: calc(100% - var(--space-8));
     }
   }
 
@@ -367,16 +360,10 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  @media (min-width: 1024px) {
-    .panel-content {
-      padding: var(--space-5);
-    }
-  }
-
   /* Settings Section */
   .settings-section {
     /* Spacing */
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-3);
   }
 
   .settings-section:last-child {
@@ -402,29 +389,31 @@
     align-items: center;
     gap: var(--space-3);
 
-    /* Style */
-    background-color: var(--bg-secondary);
-    border-radius: var(--radius-md);
-
     /* Spacing */
     padding: var(--space-4);
+
+    /* Style */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+
+    /* Transition */
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
   }
 
-  /* Custom styling for logout button */
-  :global(.logout-icon-button) {
-    flex-shrink: 0;
-    color: var(--text-danger) !important;
-    border-color: var(--border-subtle) !important;
+  .user-info:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
   }
 
-  :global(.logout-icon-button:hover) {
-    background-color: var(--bg-danger-hover) !important;
-    border-color: var(--text-danger) !important;
-    transform: scale(1.05);
+  .user-info:active {
+    background-color: var(--bg-tertiary);
   }
 
-  :global(.logout-icon-button:active) {
-    transform: scale(0.95);
+  .user-info:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
   }
 
   .user-avatar {
@@ -435,13 +424,13 @@
     flex-shrink: 0;
 
     /* Size */
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
 
     /* Style */
-    background-color: var(--accent-muted);
+    background-color: var(--accent-primary);
     border-radius: var(--radius-full);
-    color: var(--accent-primary);
+    color: var(--text-inverse);
   }
 
   .user-details {
@@ -455,6 +444,7 @@
     font-size: var(--text-base);
     font-weight: var(--font-medium);
     color: var(--text-primary);
+    line-height: 1.4;
 
     /* Text handling */
     overflow: hidden;
@@ -462,13 +452,14 @@
     white-space: nowrap;
 
     /* Reset */
-    margin: 0 0 var(--space-1) 0;
+    margin: 0 0 2px 0;
   }
 
   .user-label {
     /* Typography */
     font-size: var(--text-sm);
     color: var(--text-muted);
+    line-height: 1.4;
 
     /* Reset */
     margin: 0;
@@ -484,10 +475,19 @@
     padding: var(--space-4) !important;
     height: auto !important;
     justify-content: flex-start !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
   }
 
   :global(.menu-item:hover:not(:disabled)) {
     background-color: var(--bg-hover) !important;
+    border-color: var(--border-default) !important;
+  }
+
+  :global(.menu-item:disabled) {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
   }
 
   .menu-item-icon {
@@ -497,17 +497,11 @@
     justify-content: center;
     flex-shrink: 0;
 
-    /* Size */
+    /* Size - match avatar width for alignment */
     width: 40px;
-    height: 40px;
 
-    /* Style */
-    background-color: var(--bg-tertiary);
-    border-radius: var(--radius-md);
+    /* Color */
     color: var(--text-secondary);
-
-    /* Transition */
-    transition: transform var(--transition-fast);
   }
 
   .menu-item-icon.spinning {
@@ -528,6 +522,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--space-1);
   }
 
@@ -536,11 +531,68 @@
     font-size: var(--text-base);
     font-weight: var(--font-medium);
     color: var(--text-primary);
+    text-align: left;
   }
 
   .menu-item-subtitle {
     /* Typography */
     font-size: var(--text-sm);
+    color: var(--text-muted);
+    text-align: left;
+  }
+
+  /* Sync Button Specific Styles */
+  .sync-text-container {
+    /* Layout */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .sync-status-text {
+    /* Typography */
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-weight: var(--font-normal);
+    line-height: 1.4;
+  }
+
+  /* Sync Button States */
+  :global(.sync-button.synced) {
+    border-color: var(--success) !important;
+  }
+
+  :global(.sync-button.synced) .menu-item-icon {
+    color: var(--success);
+  }
+
+  :global(.sync-button.synced) .menu-item-text {
+    color: var(--success);
+  }
+
+  :global(.sync-button.syncing) {
+    border-color: var(--accent-primary) !important;
+  }
+
+  :global(.sync-button.syncing) .menu-item-icon {
+    color: var(--accent-primary);
+  }
+
+  :global(.sync-button.syncing) .menu-item-text {
+    color: var(--accent-primary);
+  }
+
+  :global(.sync-button.offline) {
+    border-color: var(--border-subtle) !important;
+  }
+
+  :global(.sync-button.offline) .menu-item-icon {
+    color: var(--text-muted);
+  }
+
+  :global(.sync-button.offline) .menu-item-text {
     color: var(--text-muted);
   }
 </style>

@@ -1,6 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { createSupabaseBrowserClient } from '$lib/db/supabase';
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
   import type { LoginFormData } from '$lib/types';
 
   // State
@@ -69,111 +72,70 @@
   <title>Sign In - Lists</title>
 </svelte:head>
 
-<div class="login-container">
-  <div class="login-card">
+<div class="flex min-h-screen items-center justify-center p-4 bg-background">
+  <div class="w-full max-w-[320px] sm:max-w-[360px]">
     <!-- Logo/Title -->
-    <div class="logo">
-      <h1>🛒 Lists</h1>
+    <div class="mb-10 text-center sm:mb-12">
+      <h1 class="text-2xl font-bold text-foreground font-heading m-0">
+        🛒 Lists
+      </h1>
     </div>
 
     <!-- Login Form -->
-    <form onsubmit={handleSubmit} class="login-form">
+    <form onsubmit={handleSubmit} class="flex flex-col gap-4">
       <!-- Email Input -->
-      <div class="input-group">
-        <label for="email" class="sr-only">Email</label>
-        <input
+      <div class="flex flex-col gap-2">
+        <Label for="email" class="sr-only">Email</Label>
+        <Input
           id="email"
           type="email"
           placeholder="Email"
           bind:value={email}
           disabled={isLoading}
           autocomplete="email"
-          class="input"
-          class:error={error}
+          class={error ? 'border-destructive' : ''}
         />
       </div>
 
       <!-- Password Input -->
-      <div class="input-group">
-        <label for="password" class="sr-only">Password</label>
-        <input
+      <div class="flex flex-col gap-2">
+        <Label for="password" class="sr-only">Password</Label>
+        <Input
           id="password"
           type="password"
           placeholder="Password"
           bind:value={password}
           disabled={isLoading}
           autocomplete="current-password"
-          class="input"
-          class:error={error}
+          class={error ? 'border-destructive' : ''}
         />
       </div>
 
       <!-- Error Message -->
       {#if error}
-        <div class="error-message" role="alert">
+        <div
+          class="p-3 bg-destructive/10 border border-destructive rounded-md text-destructive text-sm text-center"
+          role="alert"
+        >
           {error}
         </div>
       {/if}
 
       <!-- Submit Button -->
-      <button
+      <Button
         type="submit"
         disabled={!isFormValid || isLoading}
-        class="submit-button"
+        class="w-full h-12 mt-2"
       >
         {isLoading ? 'Signing in...' : 'Sign In'}
-      </button>
+      </Button>
     </form>
   </div>
 </div>
 
 <style>
-  /* Container - centered layout */
-  .login-container {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-4);
-    background-color: var(--bg-primary);
-  }
-
-  /* Card wrapper */
-  .login-card {
-    width: 100%;
-    max-width: 320px;
-  }
-
-  /* Logo/Title */
-  .logo {
-    text-align: center;
-    margin-bottom: var(--space-10);
-  }
-
-  .logo h1 {
-    font-family: var(--font-heading);
-    font-size: var(--text-2xl);
-    font-weight: var(--font-bold);
-    color: var(--text-primary);
-    margin: 0;
-    line-height: var(--leading-tight);
-  }
-
-  /* Form */
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
-  /* Input group */
-  .input-group {
-    display: flex;
-    flex-direction: column;
-  }
-
   /* Screen reader only label */
-  .sr-only {
+  :global(.sr-only) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -183,101 +145,5 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
-  }
-
-  /* Input field */
-  .input {
-    height: 44px;
-    width: 100%;
-    background-color: var(--bg-tertiary);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: 0 var(--space-3);
-    font-family: var(--font-body);
-    font-size: var(--text-base);
-    color: var(--text-primary);
-    transition: border-color var(--transition-fast);
-  }
-
-  .input::placeholder {
-    color: var(--text-muted);
-  }
-
-  .input:focus {
-    outline: none;
-    border-color: var(--border-focus);
-  }
-
-  .input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  /* Error state for inputs */
-  .input.error {
-    border-color: var(--error);
-  }
-
-  /* Error message */
-  .error-message {
-    padding: var(--space-3);
-    background-color: rgba(239, 68, 68, 0.1);
-    border: 1px solid var(--error);
-    border-radius: var(--radius-md);
-    color: var(--error);
-    font-size: var(--text-sm);
-    text-align: center;
-  }
-
-  /* Submit button */
-  .submit-button {
-    width: 100%;
-    height: 48px;
-    background-color: var(--accent-primary);
-    color: var(--text-inverse);
-    border: none;
-    border-radius: var(--radius-md);
-    font-family: var(--font-body);
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-    margin-top: var(--space-2);
-  }
-
-  .submit-button:hover:not(:disabled) {
-    background-color: var(--accent-hover);
-  }
-
-  .submit-button:active:not(:disabled) {
-    background-color: var(--accent-muted);
-  }
-
-  .submit-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .submit-button:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  /* Mobile optimization */
-  @media (max-width: 640px) {
-    .login-container {
-      padding: var(--space-6) var(--space-4);
-    }
-
-    .logo {
-      margin-bottom: var(--space-12);
-    }
-  }
-
-  /* Tablet and up */
-  @media (min-width: 640px) {
-    .login-card {
-      max-width: 360px;
-    }
   }
 </style>
