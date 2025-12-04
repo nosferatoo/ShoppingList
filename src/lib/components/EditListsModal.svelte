@@ -269,7 +269,7 @@
       }
 
       lists = lists.map(item => {
-        if (item.list.id === selectedList.id) {
+        if (item.list.id === selectedList!.id) {
           return {
             ...item,
             list: {
@@ -325,7 +325,7 @@
         throw error;
       }
 
-      lists = lists.filter(item => item.list.id !== listToDelete.id);
+      lists = lists.filter(item => item.list.id !== listToDelete!.id);
       await saveListOrder();
       onListsUpdated?.(lists);
       closeDeleteModal();

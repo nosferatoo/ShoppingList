@@ -64,6 +64,6 @@ export function createSupabaseServerClient(
  *
  * @deprecated Use createSupabaseBrowserClient() or createSupabaseServerClient() instead
  */
-export const supabase = isBrowser
+export const supabase = isBrowser()
   ? createBrowserClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY)
   : undefined as any; // Server-side should use createSupabaseServerClient with cookies

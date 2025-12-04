@@ -226,7 +226,7 @@
 
       // Update local state
       lists = lists.map(item => {
-        if (item.list.id === selectedList.id) {
+        if (item.list.id === selectedList!.id) {
           return {
             ...item,
             list: {
@@ -283,7 +283,7 @@
       }
 
       // Remove from local state
-      lists = lists.filter(item => item.list.id !== listToDelete.id);
+      lists = lists.filter(item => item.list.id !== listToDelete!.id);
 
       // Update positions
       await saveListOrder();

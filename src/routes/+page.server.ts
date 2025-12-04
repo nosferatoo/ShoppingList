@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals: { session, supabase, user }
     }
 
     // Parse the JSON response
-    const lists: ListWithItems[] = data || [];
+    const lists: ListWithItems[] = (data as unknown as ListWithItems[]) || [];
 
     return {
       lists

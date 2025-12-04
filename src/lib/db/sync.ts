@@ -112,7 +112,7 @@ async function pushPendingChanges(): Promise<number> {
 
   // Process results
   let successCount = 0;
-  const syncResponse = data as SyncItemsResponse;
+  const syncResponse = data as unknown as SyncItemsResponse;
 
   for (const result of syncResponse.results) {
     if (result.success) {
@@ -166,7 +166,7 @@ async function pullRemoteChanges(): Promise<{ count: number; hasChanges: boolean
     throw error;
   }
 
-  const changes = data as ChangesSinceResponse;
+  const changes = data as unknown as ChangesSinceResponse;
   let changeCount = 0;
 
   // Merge lists using LWW
@@ -234,7 +234,7 @@ async function fullSync(): Promise<{ count: number; hasChanges: boolean }> {
     throw error;
   }
 
-  const listsData = data as UserListsWithItemsResponse[];
+  const listsData = data as unknown as UserListsWithItemsResponse[];
 
   // Clear and repopulate in a transaction
   await db.transaction('rw', [db.lists, db.items, db.userListSettings], async () => {
