@@ -509,6 +509,92 @@
 
   <!-- Main content -->
   <main class="main-content">
+    <!-- Floating controls - Always visible on desktop -->
+    <div class="desktop-floating-controls">
+      <!-- Floating controls - Top Left (User Info & Dropdown) -->
+      <div class="floating-controls-left">
+        <div class="user-info-floating">
+          <div class="user-avatar-floating">
+            <User size={16} />
+          </div>
+          <button
+            type="button"
+            class="user-details-floating"
+            onclick={toggleUserDropdown}
+            aria-label="User menu"
+            aria-expanded={isUserDropdownOpen}
+          >
+            <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
+          </button>
+
+          <!-- User Dropdown Menu -->
+          {#if isUserDropdownOpen}
+            <div class="user-dropdown-menu">
+              <button
+                type="button"
+                class="dropdown-item logout-item"
+                onclick={handleLogout}
+              >
+                <LogOut size={16} />
+                <span>Log out</span>
+              </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <!-- Floating controls - Top Right (Sync, Edit Lists) -->
+      <div class="floating-controls-right">
+        <!-- Sync Button -->
+        <button
+          type="button"
+          class="sync-button-floating"
+          class:syncing={syncStore.isSyncing}
+          class:synced={syncStore.isOnline && !syncStore.isSyncing}
+          class:offline={!syncStore.isOnline}
+          onclick={handleSync}
+          disabled={!syncStore.isOnline || syncStore.isSyncing}
+          aria-label="Sync now"
+          title={!syncStore.isOnline ? 'Offline' : syncStore.isSyncing ? 'Syncing...' : 'Sync now'}
+        >
+          <RefreshCw size={18} />
+          <span class="sync-button-text">
+            {#if syncStore.isSyncing}
+              Syncing...
+            {:else if !syncStore.isOnline}
+              Offline
+            {:else if syncStore.lastSyncAt}
+              {(() => {
+                const now = new Date();
+                const diff = now.getTime() - syncStore.lastSyncAt.getTime();
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(minutes / 60);
+
+                if (minutes < 1) return 'Just now';
+                if (minutes < 60) return `${minutes}m ago`;
+                if (hours < 24) return `${hours}h ago`;
+                return 'Long ago';
+              })()}
+            {:else}
+              Never synced
+            {/if}
+          </span>
+        </button>
+
+        <!-- Edit Lists Button -->
+        <button
+          type="button"
+          class="action-button-floating edit-lists-button"
+          onclick={handleEditLists}
+          aria-label="Edit lists"
+          title="Edit lists"
+        >
+          <ListPlus size={18} />
+          <span class="button-text">Edit lists</span>
+        </button>
+      </div>
+    </div>
+
     {#if listsData.length === 0}
       <!-- Empty state -->
       <div class="empty-state">
@@ -605,89 +691,6 @@
               {/each}
             </div>
           {/if}
-        </div>
-
-        <!-- Floating controls - Top Left (User Info & Dropdown) -->
-        <div class="floating-controls-left">
-          <div class="user-info-floating">
-            <div class="user-avatar-floating">
-              <User size={16} />
-            </div>
-            <button
-              type="button"
-              class="user-details-floating"
-              onclick={toggleUserDropdown}
-              aria-label="User menu"
-              aria-expanded={isUserDropdownOpen}
-            >
-              <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
-            </button>
-
-            <!-- User Dropdown Menu -->
-            {#if isUserDropdownOpen}
-              <div class="user-dropdown-menu">
-                <button
-                  type="button"
-                  class="dropdown-item logout-item"
-                  onclick={handleLogout}
-                >
-                  <LogOut size={16} />
-                  <span>Log out</span>
-                </button>
-              </div>
-            {/if}
-          </div>
-        </div>
-
-        <!-- Floating controls - Top Right (Sync, Edit Lists, Settings) -->
-        <div class="floating-controls-right">
-          <!-- Sync Button -->
-          <button
-            type="button"
-            class="sync-button-floating"
-            class:syncing={syncStore.isSyncing}
-            class:synced={syncStore.isOnline && !syncStore.isSyncing}
-            class:offline={!syncStore.isOnline}
-            onclick={handleSync}
-            disabled={!syncStore.isOnline || syncStore.isSyncing}
-            aria-label="Sync now"
-            title={!syncStore.isOnline ? 'Offline' : syncStore.isSyncing ? 'Syncing...' : 'Sync now'}
-          >
-            <RefreshCw size={18} />
-            <span class="sync-button-text">
-              {#if syncStore.isSyncing}
-                Syncing...
-              {:else if !syncStore.isOnline}
-                Offline
-              {:else if syncStore.lastSyncAt}
-                {(() => {
-                  const now = new Date();
-                  const diff = now.getTime() - syncStore.lastSyncAt.getTime();
-                  const minutes = Math.floor(diff / 60000);
-                  const hours = Math.floor(minutes / 60);
-
-                  if (minutes < 1) return 'Just now';
-                  if (minutes < 60) return `${minutes}m ago`;
-                  if (hours < 24) return `${hours}h ago`;
-                  return 'Long ago';
-                })()}
-              {:else}
-                Never synced
-              {/if}
-            </span>
-          </button>
-
-          <!-- Edit Lists Button -->
-          <button
-            type="button"
-            class="action-button-floating edit-lists-button"
-            onclick={handleEditLists}
-            aria-label="Edit lists"
-            title="Edit lists"
-          >
-            <ListPlus size={18} />
-            <span class="button-text">Edit lists</span>
-          </button>
         </div>
       </div>
     {/if}
@@ -1029,6 +1032,22 @@
 
       /* Option 1 (backup): If padding doesn't work, uncomment line below and remove padding above
          Then also change .carousel-content-wrapper gap from 0 to var(--space-4) */
+    }
+
+    /* ========================================================================
+       DESKTOP FLOATING CONTROLS WRAPPER
+       ======================================================================== */
+
+    .desktop-floating-controls {
+      /* Hide on mobile - controls are in Header */
+      display: none;
+    }
+
+    @media (min-width: 1024px) {
+      .desktop-floating-controls {
+        /* Show on desktop */
+        display: block;
+      }
     }
 
     /* ========================================================================
