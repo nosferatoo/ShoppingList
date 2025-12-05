@@ -46,6 +46,13 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     return null;
   }
 
+  // Skip service worker registration in development
+  // Service worker only works properly in production build
+  if (import.meta.env.DEV) {
+    console.log('[PWA] Skipping service worker registration in development mode');
+    return null;
+  }
+
   try {
     console.log('[PWA] Registering service worker...');
 

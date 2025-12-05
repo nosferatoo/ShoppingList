@@ -2,10 +2,12 @@
   // Settings panel/modal component
   // Full-screen on mobile, modal on desktop
 
-  import { User, ListPlus, RefreshCw, LogOut, X } from 'lucide-svelte';
+  import { User, ListPlus, RefreshCw, LogOut, X, ChevronDown, Database } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
+  import { toastStore } from '$lib/stores/toast.svelte';
 
   interface Props {
     isOpen?: boolean;
@@ -18,8 +20,12 @@
   // Get user email from auth store
   let userEmail = $derived(authStore.userEmail);
   let isSyncing = $derived(syncStore.isSyncing);
+  let isClearingCache = $derived(syncStore.isClearingCache);
   let isOnline = $derived(syncStore.isOnline);
   let lastSyncAt = $derived(syncStore.lastSyncAt);
+
+  // Dropdown state
+  let isDropdownOpen = $state(false);
 
   // Format last sync time (concise)
   let lastSyncFormatted = $derived.by(() => {
@@ -46,13 +52,36 @@
   });
 
   // Handle sync button click
-  async function handleSync() {
+  async function handleSync(e?: MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     if (!isOnline || isSyncing) return;
 
     try {
       await syncStore.performSync();
     } catch (error) {
       console.error('Sync failed:', error);
+    }
+  }
+
+  // Handle clear cache and sync
+  async function handleClearCacheAndSync(e?: MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    if (!isOnline || isClearingCache) return;
+
+    // Close dropdown immediately
+    isDropdownOpen = false;
+
+    try {
+      await syncStore.performClearCacheAndSync();
+      toastStore.success('Cache cleared and synced');
+    } catch (error) {
+      console.error('Clear cache and sync failed:', error);
+      const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
+      toastStore.error(message);
     }
   }
 
@@ -175,28 +204,60 @@
 
         <!-- Sync Section -->
         <section class="settings-section">
-          <Button
-            variant="ghost"
-            class="menu-item sync-button {syncStatus}"
-            onclick={handleSync}
-            disabled={!isOnline || isSyncing}
-          >
-            <div class="menu-item-icon" class:spinning={isSyncing}>
-              <RefreshCw size={20} />
-            </div>
-            <div class="sync-text-container">
-              <span class="menu-item-text">Sync</span>
-              <span class="sync-status-text">
-                {#if !isOnline}
-                  Offline
-                {:else if isSyncing}
-                  Syncing...
-                {:else}
-                  Last: {lastSyncFormatted}
-                {/if}
-              </span>
-            </div>
-          </Button>
+          <div class="sync-button-container">
+            <!-- Main Sync Button -->
+            <button
+              type="button"
+              class="sync-button sync-button-main {syncStatus}"
+              onclick={(e) => handleSync(e)}
+              disabled={!isOnline || isSyncing || isClearingCache}
+              aria-label="Sync now"
+            >
+              <div class="sync-icon" class:spinning={isSyncing || isClearingCache}>
+                <RefreshCw size={20} />
+              </div>
+              <div class="sync-text-container">
+                <span class="sync-text">
+                  {#if isClearingCache}
+                    Clearing...
+                  {:else if isSyncing}
+                    Syncing...
+                  {:else if !isOnline}
+                    Offline
+                  {:else}
+                    Sync
+                  {/if}
+                </span>
+                <span class="sync-status">
+                  {#if !isSyncing && !isClearingCache && isOnline}
+                    Last: {lastSyncFormatted}
+                  {/if}
+                </span>
+              </div>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <DropdownMenu.Root bind:open={isDropdownOpen}>
+              <DropdownMenu.Trigger
+                type="button"
+                class={syncStatus}
+                disabled={!isOnline || isSyncing || isClearingCache}
+                aria-label="Sync options"
+              >
+                <ChevronDown size={18} />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content class="sync-dropdown-content" align="end">
+                <DropdownMenu.Item
+                  class="sync-dropdown-item"
+                  onclick={(e) => handleClearCacheAndSync(e)}
+                  disabled={!isOnline || isClearingCache}
+                >
+                  <Database size={16} class="mr-2" />
+                  Clear cache and sync
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </div>
         </section>
       </div>
     </div>
@@ -390,7 +451,8 @@
     gap: var(--space-3);
 
     /* Spacing */
-    padding: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    height: 64px; /* Fixed height to match other buttons */
 
     /* Style */
     background-color: var(--bg-secondary);
@@ -472,8 +534,8 @@
     gap: var(--space-3);
     width: 100%;
     background-color: var(--bg-secondary) !important;
-    padding: var(--space-4) !important;
-    height: auto !important;
+    padding: var(--space-3) var(--space-4) !important;
+    height: 64px !important; /* Fixed height to match other buttons */
     justify-content: flex-start !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-md) !important;
@@ -541,7 +603,158 @@
     text-align: left;
   }
 
-  /* Sync Button Specific Styles */
+  /* Sync Button Styles - Match Desktop Floating Split Button */
+
+  /* Split Button Container */
+  .sync-button-container {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-height: 64px; /* Ensure consistent height */
+  }
+
+  .sync-button {
+    /* Reset */
+    all: unset;
+    box-sizing: border-box;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+
+    /* Spacing */
+    padding: var(--space-3) var(--space-4);
+    height: 64px; /* Fixed height to match other buttons */
+
+    /* Style - matches menu-item */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+
+    /* Typography */
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+
+    /* Transition */
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+
+  .sync-button-main {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid currentColor;
+    border-top-left-radius: var(--radius-md);
+    border-bottom-left-radius: var(--radius-md);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Arrow button - targets shadcn Trigger */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
+    /* Reset */
+    all: unset;
+    box-sizing: border-box;
+
+    /* Position */
+    position: relative;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Size */
+    width: 48px;
+    height: 64px; /* Fixed height to match other buttons */
+    flex-shrink: 0;
+    padding: 0;
+
+    /* Style - matches main button default */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: none;
+    cursor: pointer;
+
+    /* Color */
+    color: var(--text-primary);
+
+    /* Transition - matches main button */
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+
+  /* Arrow button states - synced (no color change) */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].synced) {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
+  }
+
+  /* Arrow button hover when synced */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].synced:hover:not(:disabled)) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+
+  /* Arrow button states - syncing (no color change) */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].syncing) {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
+  }
+
+  /* Arrow button states - offline (matches main) */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].offline) {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+
+  /* Hover state - default (not syncing/synced/offline) */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled):not(.syncing):not(.offline):not(.synced)) {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+
+  /* Focus state */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Disabled state */
+  .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:disabled) {
+    cursor: not-allowed;
+  }
+
+  .sync-icon {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    /* Size - match other menu items */
+    width: 40px;
+
+    /* Color */
+    color: var(--success);
+  }
+
+  .sync-icon.spinning {
+    animation: spin 1s linear infinite;
+  }
+
   .sync-text-container {
     /* Layout */
     flex: 1;
@@ -551,48 +764,99 @@
     gap: 2px;
   }
 
-  .sync-status-text {
+  .sync-text {
     /* Typography */
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    font-weight: var(--font-normal);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
     line-height: 1.4;
   }
 
-  /* Sync Button States */
-  :global(.sync-button.synced) {
-    border-color: var(--success) !important;
+  .sync-status {
+    /* Typography */
+    font-size: var(--text-sm);
+    font-weight: var(--font-normal);
+    color: var(--text-muted);
+    line-height: 1.4;
   }
 
-  :global(.sync-button.synced) .menu-item-icon {
-    color: var(--success);
+  /* Sync Button States - More Subtle */
+
+  /* Synced state - no special styling */
+  .sync-button.synced {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
   }
 
-  :global(.sync-button.synced) .menu-item-text {
-    color: var(--success);
+  .sync-button.synced:hover:not(:disabled) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
   }
 
-  :global(.sync-button.syncing) {
-    border-color: var(--accent-primary) !important;
+  /* Syncing state - no special styling */
+  .sync-button.syncing {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
   }
 
-  :global(.sync-button.syncing) .menu-item-icon {
-    color: var(--accent-primary);
+  /* Offline state - muted */
+  .sync-button.offline {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-subtle);
+    opacity: 0.7;
   }
 
-  :global(.sync-button.syncing) .menu-item-text {
-    color: var(--accent-primary);
-  }
-
-  :global(.sync-button.offline) {
-    border-color: var(--border-subtle) !important;
-  }
-
-  :global(.sync-button.offline) .menu-item-icon {
+  .sync-button.offline .sync-icon,
+  .sync-button.offline .sync-text {
     color: var(--text-muted);
   }
 
-  :global(.sync-button.offline) .menu-item-text {
-    color: var(--text-muted);
+  .sync-button:hover:not(:disabled):not(.syncing):not(.offline) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+
+  .sync-button:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  .sync-button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Dropdown Content Styling */
+  :global(.sync-dropdown-content) {
+    min-width: 200px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    padding: var(--space-1);
+    z-index: 110;
+  }
+
+  :global(.sync-dropdown-item) {
+    display: flex;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    color: var(--success);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+  }
+
+  :global(.sync-dropdown-item svg) {
+    color: var(--success);
+  }
+
+  :global(.sync-dropdown-item:hover:not([disabled])) {
+    background-color: var(--bg-hover);
+  }
+
+  :global(.sync-dropdown-item[disabled]) {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

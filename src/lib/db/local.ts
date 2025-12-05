@@ -77,19 +77,47 @@ export class ListsDatabase extends Dexie {
   constructor() {
     super('ListsApp');
 
-    // Version 1 schema
+    // Version 1 schema (original)
     this.version(1).stores({
-      // Lists: indexed by id (primary), owner_id (for queries), updated_at (for sync)
       lists: 'id, owner_id, updated_at',
-
-      // Items: indexed by id (primary), list_id (for queries), updated_at (for sync), _pending (for sync queue)
       items: 'id, list_id, updated_at, _pending',
-
-      // User list settings: indexed by id (primary), compound index on [user_id+list_id] for unique constraint
       userListSettings: 'id, [user_id+list_id]',
-
-      // Sync metadata: keyed by string (e.g., 'lastSync')
       syncMeta: 'key'
+    });
+
+    // Version 2 schema - attempted fix (skip this version due to migration issues)
+    this.version(2).stores({
+      lists: 'id, owner_id, updated_at',
+      items: 'id, list_id, updated_at, _pending',
+      userListSettings: 'id, [user_id+list_id]',
+      syncMeta: 'key'
+    });
+
+    // Version 3 schema - fix userListSettings to use auto-increment with proper migration
+    this.version(3).stores({
+      lists: 'id, owner_id, updated_at',
+      items: 'id, list_id, updated_at, _pending',
+      userListSettings: '++id, [user_id+list_id]',
+      syncMeta: 'key'
+    }).upgrade(async (trans) => {
+      // Migrate userListSettings data
+      try {
+        const oldSettings = await trans.table('userListSettings').toArray();
+
+        // Clear the table
+        await trans.table('userListSettings').clear();
+
+        // Re-add all settings (Dexie will auto-generate new IDs)
+        for (const setting of oldSettings) {
+          // Remove the old id field
+          const { id, ...settingWithoutId } = setting;
+          await trans.table('userListSettings').add(settingWithoutId);
+        }
+      } catch (error) {
+        console.warn('Migration from v2 to v3 failed, clearing userListSettings:', error);
+        // If migration fails, just clear the table - data will be resynced
+        await trans.table('userListSettings').clear();
+      }
     });
   }
 

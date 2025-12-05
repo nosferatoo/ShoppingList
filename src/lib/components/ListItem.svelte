@@ -243,6 +243,7 @@
   @media (min-width: 1024px) {
     .item-content {
       padding: var(--space-3) var(--space-4);
+      background-color: transparent;
     }
   }
 

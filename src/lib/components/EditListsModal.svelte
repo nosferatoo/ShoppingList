@@ -134,14 +134,13 @@
             updated_at: new Date().toISOString()
           });
         } else {
-          await db.userListSettings.put({
-            id: 0,
+          await db.userListSettings.add({
             user_id: userId,
             list_id: pos.list_id,
             position: pos.position,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          });
+          } as any);
         }
       }
 

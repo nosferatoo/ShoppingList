@@ -311,14 +311,6 @@ export interface UserListsWithItemsResponse {
   items: Item[];
 }
 
-// Response from get_changes_since()
-export interface ChangesSinceResponse {
-  lists: List[];
-  items: Item[];
-  user_list_settings?: UserListSettings[]; // Optional for backward compatibility
-  server_time: string;
-}
-
 // Response from update_item_lww()
 export interface UpdateItemLWWResponse {
   success: boolean;

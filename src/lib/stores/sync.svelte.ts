@@ -2,7 +2,7 @@
 // Manages sync state, triggers, and realtime subscriptions
 
 import { browser } from '$app/environment';
-import { sync, initSyncListeners, manualSync, subscribeToChanges, getLastSyncTime, type SyncResult } from '$lib/db/sync';
+import { sync, initSyncListeners, manualSync, clearCacheAndSync, subscribeToChanges, getLastSyncTime, type SyncResult } from '$lib/db/sync';
 import { db } from '$lib/db/local';
 
 // ============================================================================
@@ -11,6 +11,7 @@ import { db } from '$lib/db/local';
 
 interface SyncState {
   isSyncing: boolean;
+  isClearingCache: boolean;
   isOnline: boolean;
   lastSyncAt: Date | null;
   pendingCount: number;
@@ -20,6 +21,7 @@ interface SyncState {
 
 let state = $state<SyncState>({
   isSyncing: false,
+  isClearingCache: false,
   isOnline: browser ? navigator.onLine : true,
   lastSyncAt: null,
   pendingCount: 0,
@@ -65,6 +67,10 @@ export const syncStore = {
 
   get hasRemoteChanges() {
     return state.hasRemoteChanges;
+  },
+
+  get isClearingCache() {
+    return state.isClearingCache;
   },
 
   // ============================================================================
@@ -194,6 +200,38 @@ export const syncStore = {
       throw error;
     } finally {
       state.isSyncing = false;
+    }
+  },
+
+  /**
+   * Perform clear cache and sync operation
+   */
+  async performClearCacheAndSync(): Promise<SyncResult | null> {
+    if (state.isSyncing || state.isClearingCache) {
+      console.log('Operation already in progress, skipping...');
+      return null;
+    }
+
+    if (!state.isOnline) {
+      state.error = 'Cannot sync while offline';
+      throw new Error('Cannot sync while offline');
+    }
+
+    state.isClearingCache = true;
+    state.error = null;
+
+    try {
+      console.log('Starting clear cache and sync...');
+      const result = await clearCacheAndSync();
+      this.handleSyncComplete(result);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
+      state.error = message;
+      console.error('Clear cache and sync failed:', error);
+      throw error;
+    } finally {
+      state.isClearingCache = false;
     }
   },
 

@@ -1,10 +1,11 @@
 // Sync logic (Last Write Wins)
-// Implements offline-first sync between Supabase and IndexedDB with LWW conflict resolution
+// Implements offline-first sync between Supabase and IndexedDB
+// Always performs full sync for simplicity and reliability
 
 import { browser } from '$app/environment';
 import { createSupabaseBrowserClient } from './supabase';
 import { db } from './local';
-import type { Item, List, ChangesSinceResponse, SyncItemsResponse, UserListsWithItemsResponse } from '$lib/types';
+import type { SyncItemsResponse, UserListsWithItemsResponse } from '$lib/types';
 
 // ============================================================================
 // TYPES
@@ -42,9 +43,8 @@ export async function setLastSyncTime(time: string): Promise<void> {
 
 /**
  * Main synchronization function
- * 1. Pushes local pending changes to server
- * 2. Pulls remote changes from server
- * 3. Resolves conflicts using Last Write Wins (LWW)
+ * 1. Pushes local pending changes to server (with server-side LWW conflict resolution)
+ * 2. Performs full sync from server (replaces local state with server state)
  */
 export async function sync(): Promise<SyncResult> {
   const result: SyncResult = {
@@ -144,67 +144,10 @@ async function pushPendingChanges(): Promise<number> {
 
 /**
  * Pull remote changes from server
- * Performs incremental sync if lastSync exists, otherwise does full sync
+ * Always performs full sync for simplicity and reliability
  */
 async function pullRemoteChanges(): Promise<{ count: number; hasChanges: boolean }> {
-  const lastSync = await getLastSyncTime();
-
-  // If first sync, do full load
-  if (!lastSync) {
-    return await fullSync();
-  }
-
-  // Incremental sync
-  const supabase = createSupabaseBrowserClient();
-
-  const { data, error } = await supabase.rpc('get_changes_since', {
-    last_sync: lastSync
-  });
-
-  if (error) {
-    console.error('Pull failed:', error);
-    throw error;
-  }
-
-  const changes = data as unknown as ChangesSinceResponse;
-  let changeCount = 0;
-
-  // Merge lists using LWW
-  for (const list of changes.lists) {
-    const local = await db.lists.get(list.id);
-    if (!local || shouldUseRemote(local, list)) {
-      await db.lists.put(list);
-      changeCount++;
-    }
-  }
-
-  // Merge items using LWW
-  for (const item of changes.items) {
-    await mergeItem(item);
-    changeCount++;
-  }
-
-  // Merge user list settings using LWW (if available)
-  if (changes.user_list_settings && Array.isArray(changes.user_list_settings)) {
-    for (const settings of changes.user_list_settings) {
-      const local = await db.userListSettings
-        .where('[user_id+list_id]')
-        .equals([settings.user_id, settings.list_id])
-        .first();
-
-      if (!local || shouldUseRemote(local, settings)) {
-        await db.userListSettings.put(settings);
-        changeCount++;
-      }
-    }
-  }
-
-  await setLastSyncTime(changes.server_time);
-
-  return {
-    count: changeCount,
-    hasChanges: changeCount > 0
-  };
+  return await fullSync();
 }
 
 // ============================================================================
@@ -247,14 +190,13 @@ async function fullSync(): Promise<{ count: number; hasChanges: boolean }> {
       await db.lists.put(entry.list);
 
       // Store user's position for this list
-      await db.userListSettings.put({
-        id: 0, // Auto-generated
+      await db.userListSettings.add({
         user_id: userId,
         list_id: entry.list.id,
         position: entry.position,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      });
+      } as any);
 
       // Store items
       for (const item of entry.items) {
@@ -272,47 +214,13 @@ async function fullSync(): Promise<{ count: number; hasChanges: boolean }> {
 }
 
 // ============================================================================
-// CONFLICT RESOLUTION (LWW)
+// CONFLICT RESOLUTION
 // ============================================================================
 
 /**
- * Determine if remote record should replace local based on timestamps
- * Last Write Wins: more recent updated_at wins
+ * Conflict resolution is handled by the push phase (server-side LWW in sync_items RPC)
+ * and full sync on pull (server state replaces local state completely)
  */
-function shouldUseRemote(
-  local: { updated_at: string },
-  remote: { updated_at: string }
-): boolean {
-  return new Date(remote.updated_at) > new Date(local.updated_at);
-}
-
-/**
- * Merge a remote item with local item using LWW strategy
- * Handles pending local changes appropriately
- */
-async function mergeItem(remoteItem: Item): Promise<void> {
-  const localItem = await db.items.get(remoteItem.id);
-
-  if (!localItem) {
-    // New item from remote, just add it
-    await db.items.put({ ...remoteItem, _pending: false });
-    return;
-  }
-
-  if (localItem._pending) {
-    // Local has pending changes, compare timestamps
-    if (shouldUseRemote(localItem, remoteItem)) {
-      // Remote is newer, discard local changes
-      await db.items.put({ ...remoteItem, _pending: false });
-    }
-    // else: local wins, keep pending flag for next sync
-  } else {
-    // No local changes, just update if remote is newer
-    if (shouldUseRemote(localItem, remoteItem)) {
-      await db.items.put({ ...remoteItem, _pending: false });
-    }
-  }
-}
 
 // ============================================================================
 // SYNC LISTENERS
@@ -364,6 +272,34 @@ export async function manualSync(): Promise<SyncResult> {
     throw new Error('Cannot sync while offline');
   }
   return await sync();
+}
+
+/**
+ * Clear local cache and perform full sync
+ * Used when user wants to force a complete refresh from server
+ */
+export async function clearCacheAndSync(): Promise<SyncResult> {
+  if (!navigator.onLine) {
+    throw new Error('Cannot sync while offline');
+  }
+
+  try {
+    console.log('Clearing local cache...');
+
+    // Step 1: Clear all IndexedDB data atomically
+    await db.clearAll();
+
+    console.log('Cache cleared, performing full sync...');
+
+    // Step 2: Perform full sync (which fetches all data from server)
+    const result = await sync();
+
+    console.log('Clear cache and sync completed:', result);
+    return result;
+  } catch (error) {
+    console.error('Clear cache and sync failed:', error);
+    throw error;
+  }
 }
 
 // ============================================================================

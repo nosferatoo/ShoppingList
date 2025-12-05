@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw } from 'lucide-svelte';
+  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import Settings from '$lib/components/Settings.svelte';
@@ -11,6 +11,7 @@
   import EditListsModal from '$lib/components/EditListsModal.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
+  import { toastStore } from '$lib/stores/toast.svelte';
   import { db } from '$lib/db/local';
   import type { SyncResult } from '$lib/db/sync';
   import {
@@ -20,6 +21,7 @@
     CarouselNext,
     CarouselPrevious
   } from '$lib/components/ui/carousel';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import type { ListWithItems, Item } from '$lib/types';
 
   // Props
@@ -394,6 +396,21 @@
     }
   }
 
+  // Handle clear cache and sync
+  async function handleClearCacheAndSync() {
+    if (!syncStore.isOnline || syncStore.isClearingCache) return;
+
+    try {
+      await syncStore.performClearCacheAndSync();
+      await loadListsFromIndexedDB();
+      toastStore.success('Cache cleared and synced');
+    } catch (error) {
+      console.error('Clear cache and sync failed:', error);
+      const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
+      toastStore.error(message);
+    }
+  }
+
   // Load lists from IndexedDB
   async function loadListsFromIndexedDB() {
     if (!browser || !authStore.userId) return;
@@ -451,10 +468,9 @@
       const syncEvent = event as CustomEvent<SyncResult>;
       console.log('Sync complete:', syncEvent.detail);
 
-      if (syncEvent.detail.hasRemoteChanges) {
-        console.log('Sync pulled remote changes, reloading data...');
-        loadListsFromIndexedDB();
-      }
+      // Always reload (handles both normal sync and clear cache)
+      console.log('Reloading lists from IndexedDB...');
+      loadListsFromIndexedDB();
     };
 
     window.addEventListener('remote-change', handleRemoteChange);
@@ -525,11 +541,13 @@
             aria-expanded={isUserDropdownOpen}
           >
             <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
+            <ChevronDown size={14} class="dropdown-chevron" />
           </button>
 
           <!-- User Dropdown Menu -->
           {#if isUserDropdownOpen}
             <div class="user-dropdown-menu">
+              <!-- Logout button -->
               <button
                 type="button"
                 class="dropdown-item logout-item"
@@ -545,41 +563,69 @@
 
       <!-- Floating controls - Top Right (Sync, Edit Lists) -->
       <div class="floating-controls-right">
-        <!-- Sync Button -->
-        <button
-          type="button"
-          class="sync-button-floating"
-          class:syncing={syncStore.isSyncing}
-          class:synced={syncStore.isOnline && !syncStore.isSyncing}
-          class:offline={!syncStore.isOnline}
-          onclick={handleSync}
-          disabled={!syncStore.isOnline || syncStore.isSyncing}
-          aria-label="Sync now"
-          title={!syncStore.isOnline ? 'Offline' : syncStore.isSyncing ? 'Syncing...' : 'Sync now'}
-        >
-          <RefreshCw size={18} />
-          <span class="sync-button-text">
-            {#if syncStore.isSyncing}
-              Syncing...
-            {:else if !syncStore.isOnline}
-              Offline
-            {:else if syncStore.lastSyncAt}
-              {(() => {
-                const now = new Date();
-                const diff = now.getTime() - syncStore.lastSyncAt.getTime();
-                const minutes = Math.floor(diff / 60000);
-                const hours = Math.floor(minutes / 60);
+        <!-- Sync Button (Split Button with shadcn dropdown) -->
+        <div class="sync-button-container">
+          <!-- Main Sync Button -->
+          <button
+            type="button"
+            class="sync-button-floating sync-button-main {syncStore.isSyncing || syncStore.isClearingCache ? 'syncing' : syncStore.isOnline && !syncStore.isSyncing && !syncStore.isClearingCache ? 'synced' : !syncStore.isOnline ? 'offline' : ''}"
+            onclick={handleSync}
+            disabled={!syncStore.isOnline || syncStore.isSyncing || syncStore.isClearingCache}
+            aria-label="Sync now"
+          >
+            <div class="sync-icon" class:spinning={syncStore.isSyncing || syncStore.isClearingCache}>
+              <RefreshCw size={20} />
+            </div>
+            <div class="sync-text-container">
+              <span class="sync-status">
+                {#if syncStore.isClearingCache}
+                  Clearing...
+                {:else if syncStore.isSyncing}
+                  Syncing...
+                {:else if !syncStore.isOnline}
+                  Offline
+                {:else}
+                  Last: {(() => {
+                    if (!syncStore.lastSyncAt) return 'Never';
+                    const now = new Date();
+                    const diff = now.getTime() - syncStore.lastSyncAt.getTime();
+                    const seconds = Math.floor(diff / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const hours = Math.floor(minutes / 60);
 
-                if (minutes < 1) return 'Just now';
-                if (minutes < 60) return `${minutes}m ago`;
-                if (hours < 24) return `${hours}h ago`;
-                return 'Long ago';
-              })()}
-            {:else}
-              Never synced
-            {/if}
-          </span>
-        </button>
+                    if (seconds < 60) return 'now';
+                    if (minutes < 60) return `${minutes}m ago`;
+                    if (hours < 24) return `${hours}h ago`;
+                    return syncStore.lastSyncAt.toLocaleDateString();
+                  })()}
+                {/if}
+              </span>
+            </div>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              type="button"
+              class={syncStore.isSyncing || syncStore.isClearingCache ? 'syncing' : syncStore.isOnline && !syncStore.isSyncing && !syncStore.isClearingCache ? 'synced' : !syncStore.isOnline ? 'offline' : ''}
+              disabled={!syncStore.isOnline || syncStore.isSyncing || syncStore.isClearingCache}
+              aria-label="Sync options"
+            >
+              <ChevronDown size={18} />
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Content align="end" class="sync-dropdown-content">
+              <DropdownMenu.Item
+                class="sync-dropdown-item"
+                disabled={syncStore.isClearingCache}
+                onSelect={handleClearCacheAndSync}
+              >
+                <Database size={16} class="mr-2" />
+                Clear cache and sync
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
 
         <!-- Edit Lists Button -->
         <button
@@ -764,15 +810,110 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
 
     /* Spacing - account for fixed header on mobile */
     margin-top: 64px;
+  }
+
+  /* Aurora background effect - desktop only */
+  .main-content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+
+    /* No aurora on mobile - clean background */
+    display: none;
+  }
+
+  @keyframes aurora-drift {
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    33% {
+      transform: translate(3%, -2%) scale(1.05);
+      opacity: 0.9;
+    }
+    66% {
+      transform: translate(-2%, 3%) scale(0.98);
+      opacity: 0.95;
+    }
+    100% {
+      transform: translate(2%, -1%) scale(1.02);
+      opacity: 1;
+    }
+  }
+
+  /* Ensure content appears above aurora */
+  .main-content > * {
+    position: relative;
+    z-index: 1;
   }
 
   @media (min-width: 1024px) {
     .main-content {
       /* No margin-top on desktop since header is hidden */
       margin-top: 0;
+    }
+
+    /* Aurora background - desktop only with smooth transitions */
+    .main-content::before {
+      display: block;
+      background:
+        /* Primary orange orb - top left */
+        radial-gradient(
+          ellipse 60vw 50vh at 15% 25%,
+          rgba(249, 115, 22, 0.12) 0%,
+          rgba(249, 115, 22, 0.09) 18%,
+          rgba(249, 115, 22, 0.06) 32%,
+          rgba(249, 115, 22, 0.04) 42%,
+          rgba(249, 115, 22, 0.02) 52%,
+          rgba(249, 115, 22, 0.01) 60%,
+          transparent 75%
+        ),
+        /* Teal orb - top right */
+        radial-gradient(
+          ellipse 55vw 55vh at 85% 55%,
+          rgba(20, 184, 166, 0.09) 0%,
+          rgba(20, 184, 166, 0.068) 18%,
+          rgba(20, 184, 166, 0.045) 32%,
+          rgba(20, 184, 166, 0.03) 42%,
+          rgba(20, 184, 166, 0.015) 52%,
+          rgba(20, 184, 166, 0.008) 60%,
+          transparent 75%
+        ),
+        /* Blue orb - bottom center */
+        radial-gradient(
+          ellipse 50vw 45vh at 50% 75%,
+          rgba(59, 130, 246, 0.07) 0%,
+          rgba(59, 130, 246, 0.053) 18%,
+          rgba(59, 130, 246, 0.035) 32%,
+          rgba(59, 130, 246, 0.023) 42%,
+          rgba(59, 130, 246, 0.012) 52%,
+          rgba(59, 130, 246, 0.006) 60%,
+          transparent 75%
+        ),
+        /* Secondary orange orb - bottom left for depth */
+        radial-gradient(
+          ellipse 45vw 40vh at 30% 70%,
+          rgba(249, 115, 22, 0.06) 0%,
+          rgba(249, 115, 22, 0.045) 18%,
+          rgba(249, 115, 22, 0.03) 32%,
+          rgba(249, 115, 22, 0.02) 42%,
+          rgba(249, 115, 22, 0.01) 52%,
+          rgba(249, 115, 22, 0.005) 60%,
+          transparent 75%
+        );
+
+      /* Increased blur for extremely smooth effect */
+      filter: blur(120px);
+
+      /* Slow, subtle animation */
+      animation: aurora-drift 20s ease-in-out infinite alternate;
     }
   }
 
@@ -927,6 +1068,15 @@
     display: none;
   }
 
+  /* ========================================================================
+     DESKTOP FLOATING CONTROLS WRAPPER
+     ======================================================================== */
+
+  /* Hide desktop controls on mobile by default */
+  .desktop-floating-controls {
+    display: none;
+  }
+
   @media (min-width: 1024px) {
     .desktop-view {
       /* Layout */
@@ -1034,20 +1184,13 @@
          Then also change .carousel-content-wrapper gap from 0 to var(--space-4) */
     }
 
-    /* ========================================================================
-       DESKTOP FLOATING CONTROLS WRAPPER
-       ======================================================================== */
-
+    /* Show desktop floating controls on desktop */
     .desktop-floating-controls {
-      /* Hide on mobile - controls are in Header */
-      display: none;
-    }
+      display: block;
 
-    @media (min-width: 1024px) {
-      .desktop-floating-controls {
-        /* Show on desktop */
-        display: block;
-      }
+      /* High z-index to ensure controls are clickable above all content */
+      position: relative;
+      z-index: 100;
     }
 
     /* ========================================================================
@@ -1111,8 +1254,9 @@
     .user-details-floating {
       /* Layout */
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-2);
       min-width: 0;
 
       /* Style as button */
@@ -1152,25 +1296,46 @@
       margin: 0;
     }
 
+    /* Dropdown Chevron Icon */
+    .user-details-floating :global(.dropdown-chevron) {
+      /* Color */
+      color: var(--text-muted);
+
+      /* Layout */
+      flex-shrink: 0;
+
+      /* Transition */
+      transition: transform var(--transition-fast), color var(--transition-fast);
+    }
+
+    .user-details-floating:hover :global(.dropdown-chevron) {
+      color: var(--text-secondary);
+    }
+
+    .user-details-floating[aria-expanded="true"] :global(.dropdown-chevron) {
+      transform: rotate(180deg);
+      color: var(--accent-primary);
+    }
+
     /* User Dropdown Menu */
     .user-dropdown-menu {
       /* Position */
       position: absolute;
       top: calc(100% + var(--space-1));
-      left: 0;
+      right: 0;
       z-index: 50;
 
       /* Size */
-      min-width: 180px;
+      min-width: 200px;
 
       /* Style */
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-xl);
 
       /* Spacing */
-      padding: var(--space-2);
+      padding: var(--space-1);
 
       /* Animation */
       animation: dropdownFadeIn var(--transition-fast) ease-out;
@@ -1203,14 +1368,13 @@
 
       /* Typography */
       font-size: var(--text-sm);
-      font-weight: var(--font-medium);
       color: var(--text-primary);
 
       /* Spacing */
-      padding: var(--space-2) var(--space-3);
+      padding: var(--space-3) var(--space-4);
 
       /* Transition */
-      transition: background-color var(--transition-fast), color var(--transition-fast);
+      transition: background-color var(--transition-fast);
     }
 
     .dropdown-item:hover {
@@ -1227,12 +1391,12 @@
     }
 
     .logout-item {
-      color: var(--error);
+      color: #ef4444;
     }
 
     .logout-item:hover {
       background-color: rgba(239, 68, 68, 0.1);
-      color: #dc2626;
+      color: #f87171;
     }
 
     .logout-item:active {
@@ -1346,75 +1510,117 @@
        ======================================================================== */
 
     .sync-button-floating {
+      /* Reset */
+      all: unset;
+      box-sizing: border-box;
+
       /* Layout */
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: var(--space-2);
+      justify-content: flex-start;
+      gap: var(--space-3);
 
-      /* Size - wider to accommodate text */
+      /* Spacing */
+      padding: var(--space-3) var(--space-4);
       height: 48px;
-      padding: 0 var(--space-4);
 
-      /* Style */
+      /* Style - matches menu-item */
       background-color: var(--bg-secondary);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
       cursor: pointer;
       box-shadow: var(--shadow-lg);
 
-      /* Color */
-      color: var(--text-secondary);
+      /* Typography */
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
 
       /* Transition */
-      transition: color var(--transition-fast),
-                  background-color var(--transition-fast),
+      transition: background-color var(--transition-fast),
                   border-color var(--transition-fast),
                   box-shadow var(--transition-fast),
                   transform var(--transition-fast);
     }
 
-    .sync-button-text {
-      font-size: var(--text-sm);
-      font-weight: var(--font-medium);
-      white-space: nowrap;
-    }
+    .sync-icon {
+      /* Layout */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
 
-    /* Synced state - green */
-    .sync-button-floating.synced {
-      background-color: rgba(34, 197, 94, 0.1);
-      border-color: var(--success);
+      /* Size - match other menu items */
+      width: 40px;
+
+      /* Color */
       color: var(--success);
     }
 
+    .sync-icon.spinning {
+      animation: spin 1s linear infinite;
+    }
+
+    .sync-text-container {
+      /* Layout */
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .sync-text {
+      /* Typography */
+      font-size: var(--text-base);
+      font-weight: var(--font-medium);
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .sync-status {
+      /* Typography */
+      font-size: var(--text-sm);
+      font-weight: var(--font-normal);
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Sync Button States */
+
+    /* Synced state - no special styling */
+    .sync-button-floating.synced {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-subtle);
+    }
+
     .sync-button-floating.synced:hover:not(:disabled) {
-      background-color: rgba(34, 197, 94, 0.15);
+      background-color: var(--bg-hover);
+      border-color: var(--border-default);
       box-shadow: var(--shadow-xl);
       transform: translateY(-1px);
     }
 
-    /* Syncing state - orange with spinning animation */
+    /* Syncing state - no special styling */
     .sync-button-floating.syncing {
-      background-color: rgba(249, 115, 22, 0.1);
-      border-color: var(--accent-primary);
-      color: var(--accent-primary);
-    }
-
-    .sync-button-floating.syncing :global(svg) {
-      animation: spin 1s linear infinite;
+      background-color: var(--bg-secondary);
+      border-color: var(--border-subtle);
     }
 
     /* Offline state - muted */
     .sync-button-floating.offline {
       background-color: var(--bg-secondary);
       border-color: var(--border-subtle);
-      color: var(--text-muted);
       opacity: 0.7;
     }
 
+    .sync-button-floating.offline .sync-icon,
+    .sync-button-floating.offline .sync-text {
+      color: var(--text-muted);
+    }
+
     .sync-button-floating:hover:not(:disabled):not(.syncing):not(.offline) {
-      color: var(--text-primary);
       background-color: var(--bg-hover);
+      border-color: var(--border-default);
       box-shadow: var(--shadow-xl);
       transform: translateY(-1px);
     }
@@ -1424,12 +1630,160 @@
       outline-offset: 2px;
     }
 
+    .sync-button-floating:disabled {
+      cursor: not-allowed;
+    }
+
     .sync-button-floating:active:not(:disabled) {
       box-shadow: var(--shadow-md);
       transform: translateY(0);
     }
 
-    .sync-button-floating:disabled {
+    /* Split Button Container */
+    .sync-button-container {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .sync-button-main {
+      flex: 1;
+      min-width: 0;
+      border-right: 1px solid currentColor;
+      border-top-left-radius: var(--radius-lg);
+      border-bottom-left-radius: var(--radius-lg);
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    /* Arrow button - targets shadcn Trigger */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
+      /* Reset */
+      all: unset;
+      box-sizing: border-box;
+
+      /* Position */
+      position: relative;
+
+      /* Layout */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      /* Size */
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0;
+
+      /* Style - matches main button default */
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-top-right-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+
+      /* Color */
+      color: var(--text-primary);
+
+      /* Transition - matches main button */
+      transition: color var(--transition-fast),
+                  background-color var(--transition-fast),
+                  border-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  transform var(--transition-fast);
+    }
+
+    /* Arrow button states - synced (no color change) */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].synced) {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    /* Arrow button hover when synced */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].synced:hover:not(:disabled)) {
+      background-color: var(--bg-hover);
+      border-color: var(--border-default);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-1px);
+    }
+
+    /* Arrow button states - syncing (no color change) */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].syncing) {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    /* Arrow button states - offline (matches main) */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"].offline) {
+      background-color: var(--bg-secondary);
+      border-color: var(--border-subtle);
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    /* Hover state - default (not syncing/synced/offline) */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled):not(.syncing):not(.offline):not(.synced)) {
+      color: var(--text-primary);
+      background-color: var(--bg-hover);
+      border-color: var(--border-default);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-1px);
+    }
+
+    /* Active state */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
+      box-shadow: var(--shadow-md);
+      transform: translateY(0);
+    }
+
+    /* Focus state */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    /* Disabled state */
+    .sync-button-container :global(button[data-slot="dropdown-menu-trigger"]:disabled) {
+      cursor: not-allowed;
+    }
+
+    /* Dropdown Content Styling */
+    :global(.sync-dropdown-content) {
+      min-width: 200px;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xl);
+      padding: var(--space-1);
+      z-index: 110;
+    }
+
+    :global(.sync-dropdown-item) {
+      display: flex;
+      align-items: center;
+      padding: var(--space-3) var(--space-4);
+      color: var(--success);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    :global(.sync-dropdown-item svg) {
+      color: var(--success);
+    }
+
+    :global(.sync-dropdown-item:hover:not([disabled])) {
+      background-color: var(--bg-hover);
+    }
+
+    :global(.sync-dropdown-item[disabled]) {
+      opacity: 0.5;
       cursor: not-allowed;
     }
   }

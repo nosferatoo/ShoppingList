@@ -245,6 +245,14 @@
   @media (min-width: 1024px) {
     :global(.list-card) {
       width: 600px;
+
+      /* Semi-transparent background with frosted glass effect */
+      background-color: rgba(26, 26, 26, 0.7) !important;
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+
+      /* Enhanced border for glass effect */
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
   }
 
@@ -419,6 +427,13 @@
 
     /* Smooth scrolling on touch */
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Desktop: Semi-transparent items container to match card glass effect */
+  @media (min-width: 1024px) {
+    .items-container {
+      background-color: rgba(10, 10, 10, 0.3);
+    }
   }
 
   /* Custom scrollbar styling (both mobile and desktop) */

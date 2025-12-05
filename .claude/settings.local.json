@@ -24,7 +24,8 @@
       "Bash(node scripts/convert-icon.js:*)",
       "Bash(ls:*)",
       "Bash(git rev-list:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
