@@ -45,6 +45,7 @@
   // Input state
   let newItemText = $state('');
   let isAdding = $state(false);
+  let inputElement: HTMLInputElement | null = $state(null);
 
   // Track which item has actions showing (mobile long-press)
   let activeItemId = $state<number | null>(null);
@@ -108,6 +109,11 @@
     try {
       await onAddItem?.(list.id, text);
       newItemText = ''; // Clear input on success
+
+      // Auto-focus for continued input
+      setTimeout(() => {
+        inputElement?.focus();
+      }, 0);
     } catch (error: any) {
       // Check if error is a duplicate constraint violation (code 23505 for PostgreSQL unique_violation)
       const isDuplicateError = error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('unique');
@@ -115,10 +121,18 @@
       if (isDuplicateError) {
         // Silent handling as per requirements - just clear the input
         newItemText = '';
+        // Also refocus on duplicate error
+        setTimeout(() => {
+          inputElement?.focus();
+        }, 0);
       } else {
         // Log other errors but still clear the input to unblock the UI
         console.error('Failed to add item:', error);
         newItemText = '';
+        // Refocus even on error
+        setTimeout(() => {
+          inputElement?.focus();
+        }, 0);
       }
     } finally {
       isAdding = false;
@@ -168,6 +182,7 @@
           class="add-item-input"
           placeholder="Add item..."
           bind:value={newItemText}
+          bind:ref={inputElement}
           disabled={isAdding}
           aria-label="Add new item"
         />
