@@ -2,7 +2,7 @@
   // App header with settings icon
   // Fixed top bar with title and settings access
 
-  import { Settings, RefreshCw, ShoppingCart, CheckCircle } from 'lucide-svelte';
+  import { Settings, RefreshCw, ShoppingCart, CheckCircle, List, Layers } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
   import { syncStore } from '$lib/stores/sync.svelte';
@@ -14,9 +14,11 @@
     totalCount?: number;
     checkedCount?: number;
     onSettingsClick?: () => void;
+    isMasterMode?: boolean;
+    onToggleMasterMode?: (enabled: boolean) => void;
   }
 
-  let { title = 'Lists', listType, isShared = false, totalCount = 0, checkedCount = 0, onSettingsClick }: Props = $props();
+  let { title = 'Lists', listType, isShared = false, totalCount = 0, checkedCount = 0, onSettingsClick, isMasterMode = false, onToggleMasterMode }: Props = $props();
 
   // Sync status from store
   let isSyncing = $derived(syncStore.isSyncing);
@@ -69,36 +71,40 @@
 
         {#if totalCount > 0}
           <span class="item-count">
-            {checkedCount} of {totalCount} completed
+            {#if isMasterMode}
+              {totalCount} {totalCount === 1 ? 'item' : 'items'} remaining
+            {:else}
+              {checkedCount} of {totalCount} completed
+            {/if}
           </span>
         {/if}
       </div>
-
-      {#if isShared}
-        <Badge variant="secondary" class="shared-badge-custom">
-          Shared
-        </Badge>
-      {/if}
     </div>
 
-    <!-- Right side: Sync Status + Settings -->
+    <!-- Right side: Master Toggle + Settings -->
     <div class="header-actions">
-      <!-- Sync Status Indicator -->
-      <div
-        class="sync-indicator"
-        class:syncing={syncStatus === 'syncing'}
-        class:offline={syncStatus === 'offline'}
-        class:synced={syncStatus === 'synced'}
-        title={syncStatus === 'offline' ? 'Offline' : lastSyncFormatted}
-      >
-        <RefreshCw size={18} class="sync-icon {syncStatus === 'syncing' ? 'spinning' : ''}" />
-        {#if syncStatus === 'syncing'}
-          <span class="sync-text">Syncing</span>
-        {:else if syncStatus === 'offline'}
-          <span class="sync-text">Offline</span>
-        {:else}
-          <span class="sync-text">Synced</span>
-        {/if}
+      <!-- Master List Toggle - Segmented Control -->
+      <div class="segmented-control">
+        <button
+          type="button"
+          class="segment"
+          class:active={!isMasterMode}
+          onclick={() => onToggleMasterMode?.(false)}
+          aria-label="Normal list view"
+          aria-pressed={!isMasterMode}
+        >
+          <List size={18} />
+        </button>
+        <button
+          type="button"
+          class="segment"
+          class:active={isMasterMode}
+          onclick={() => onToggleMasterMode?.(true)}
+          aria-label="Master list view"
+          aria-pressed={isMasterMode}
+        >
+          <Layers size={18} />
+        </button>
       </div>
 
       <!-- Settings Button -->
@@ -209,80 +215,72 @@
     margin: 0;
   }
 
-  :global(.shared-badge-custom) {
-    flex-shrink: 0;
-    margin-left: auto;
-    margin-right: var(--space-3);
-  }
-
   /* Header Actions */
   .header-actions {
     /* Layout */
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
 
-  /* Sync Indicator */
-  .sync-indicator {
+  /* Segmented Control */
+  .segmented-control {
     /* Layout */
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: 2px;
 
     /* Style */
     background-color: var(--bg-tertiary);
     border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
 
-    /* Spacing - compact for icon-only on mobile */
-    padding: var(--space-2);
-
-    /* Typography */
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
+    /* Spacing */
+    padding: 2px;
 
     /* Transition */
     transition: background-color var(--transition-fast);
   }
 
-  .sync-indicator :global(.sync-icon) {
-    flex-shrink: 0;
-  }
+  .segment {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  .sync-text {
-    /* Typography */
-    font-size: var(--text-sm);
-    white-space: nowrap;
+    /* Size */
+    width: 36px;
+    height: 32px;
 
-    /* Hide on mobile to save space */
-    display: none;
-  }
-
-  /* Sync States */
-  .sync-indicator.syncing {
-    color: var(--accent-primary);
-  }
-
-  .sync-indicator.syncing :global(.sync-icon.spinning) {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .sync-indicator.offline {
+    /* Style */
+    background-color: transparent;
+    border: none;
+    border-radius: calc(var(--radius-md) - 2px);
     color: var(--text-muted);
-    background-color: var(--bg-secondary);
+    cursor: pointer;
+
+    /* Transition */
+    transition: all var(--transition-fast);
+
+    /* Reset */
+    padding: 0;
+    outline: none;
   }
 
-  .sync-indicator.synced {
-    color: var(--success);
+  .segment:hover:not(.active) {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+
+  .segment.active {
+    background-color: var(--accent-primary);
+    color: var(--text-on-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .segment:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
   :global(.settings-button-custom) {

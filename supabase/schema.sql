@@ -84,6 +84,27 @@ create table public.user_list_settings (
 create index user_list_settings_user_id_idx on public.user_list_settings(user_id);
 create index user_list_settings_list_id_idx on public.user_list_settings(list_id);
 
+-- ----------------------------------------------------------------------------
+-- ITEM CHECK LOGS TABLE (for statistics)
+-- ----------------------------------------------------------------------------
+create table public.item_check_logs (
+  id serial primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  list_name text not null,
+  item_name text not null,
+  checked_at timestamptz not null,
+
+  -- Optional: Store IDs for efficient queries while they still exist
+  list_id integer references public.lists(id) on delete set null,
+  item_id integer references public.items(id) on delete set null
+);
+
+-- Indexes for efficient statistics queries
+create index item_check_logs_user_id_idx on public.item_check_logs(user_id);
+create index item_check_logs_checked_at_idx on public.item_check_logs(checked_at desc);
+create index item_check_logs_list_name_idx on public.item_check_logs(list_name);
+create index item_check_logs_item_name_idx on public.item_check_logs(item_name);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================================
@@ -92,6 +113,7 @@ alter table public.lists enable row level security;
 alter table public.items enable row level security;
 alter table public.list_shares enable row level security;
 alter table public.user_list_settings enable row level security;
+alter table public.item_check_logs enable row level security;
 
 -- ----------------------------------------------------------------------------
 -- LISTS POLICIES
@@ -264,6 +286,18 @@ create policy "Users can update own list settings"
 create policy "Users can delete own list settings"
   on public.user_list_settings for delete
   using (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
+-- ITEM CHECK LOGS POLICIES
+-- ----------------------------------------------------------------------------
+
+create policy "Users can view own check logs"
+  on public.item_check_logs for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create own check logs"
+  on public.item_check_logs for insert
+  with check (auth.uid() = user_id);
 
 -- ============================================================================
 -- FUNCTIONS & TRIGGERS
@@ -586,3 +620,4 @@ create trigger manage_list_shares_trigger
 -- Enable realtime for lists and items tables
 alter publication supabase_realtime add table public.lists;
 alter publication supabase_realtime add table public.items;
+alter publication supabase_realtime add table public.item_check_logs;

@@ -58,7 +58,10 @@ export async function sync(): Promise<SyncResult> {
     // 1. Push local changes first
     result.pushed = await pushPendingChanges();
 
-    // 2. Pull remote changes
+    // 2. Push pending check logs
+    await pushPendingCheckLogs();
+
+    // 3. Pull remote changes
     const pullResult = await pullRemoteChanges();
     result.pulled = pullResult.count;
     result.hasRemoteChanges = pullResult.hasChanges;
@@ -136,6 +139,51 @@ async function pushPendingChanges(): Promise<number> {
   await setLastSyncTime(syncResponse.server_time);
 
   return successCount;
+}
+
+/**
+ * Push pending check logs to the server
+ * Check logs are append-only, so no conflict resolution needed
+ */
+async function pushPendingCheckLogs(): Promise<number> {
+  const supabase = createSupabaseBrowserClient();
+
+  // Get all pending check logs
+  const pendingLogs = await db.getPendingCheckLogs();
+
+  if (pendingLogs.length === 0) {
+    return 0;
+  }
+
+  // Prepare logs for insert (exclude _pending and id fields)
+  const logsToInsert = pendingLogs.map(log => ({
+    user_id: log.user_id,
+    list_name: log.list_name,
+    item_name: log.item_name,
+    checked_at: log.checked_at,
+    list_id: log.list_id,
+    item_id: log.item_id
+  }));
+
+  // Insert all logs at once
+  const { error } = await supabase
+    .from('item_check_logs')
+    .insert(logsToInsert);
+
+  if (error) {
+    console.error('Push check logs failed:', error);
+    throw error;
+  }
+
+  // Mark all logs as synced by clearing them from local DB
+  // (We don't need to keep synced logs locally since they're append-only)
+  for (const log of pendingLogs) {
+    if (log.id) {
+      await db.checkLogs.delete(log.id);
+    }
+  }
+
+  return pendingLogs.length;
 }
 
 // ============================================================================

@@ -40,6 +40,16 @@ export interface UserListSettings {
   updated_at: string;
 }
 
+export interface CheckLog {
+  id: number;
+  user_id: string;
+  list_name: string;
+  item_name: string;
+  checked_at: string;
+  list_id: number | null;
+  item_id: number | null;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -231,6 +241,58 @@ export interface Database {
           }
         ]
       }
+      item_check_logs: {
+        Row: {
+          id: number
+          user_id: string
+          list_name: string
+          item_name: string
+          checked_at: string
+          list_id: number | null
+          item_id: number | null
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          list_name: string
+          item_name: string
+          checked_at: string
+          list_id?: number | null
+          item_id?: number | null
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          list_name?: string
+          item_name?: string
+          checked_at?: string
+          list_id?: number | null
+          item_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'item_check_logs_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'item_check_logs_list_id_fkey'
+            columns: ['list_id']
+            isOneToOne: false
+            referencedRelation: 'lists'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'item_check_logs_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'items'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -287,18 +349,21 @@ export type DbList = Database['public']['Tables']['lists']['Row'];
 export type DbItem = Database['public']['Tables']['items']['Row'];
 export type DbListShare = Database['public']['Tables']['list_shares']['Row'];
 export type DbUserListSettings = Database['public']['Tables']['user_list_settings']['Row'];
+export type DbCheckLog = Database['public']['Tables']['item_check_logs']['Row'];
 
 // Shorthand for insert types
 export type DbListInsert = Database['public']['Tables']['lists']['Insert'];
 export type DbItemInsert = Database['public']['Tables']['items']['Insert'];
 export type DbListShareInsert = Database['public']['Tables']['list_shares']['Insert'];
 export type DbUserListSettingsInsert = Database['public']['Tables']['user_list_settings']['Insert'];
+export type DbCheckLogInsert = Database['public']['Tables']['item_check_logs']['Insert'];
 
 // Shorthand for update types
 export type DbListUpdate = Database['public']['Tables']['lists']['Update'];
 export type DbItemUpdate = Database['public']['Tables']['items']['Update'];
 export type DbListShareUpdate = Database['public']['Tables']['list_shares']['Update'];
 export type DbUserListSettingsUpdate = Database['public']['Tables']['user_list_settings']['Update'];
+export type DbCheckLogUpdate = Database['public']['Tables']['item_check_logs']['Update'];
 
 // ============================================================================
 // SUPABASE FUNCTION RETURN TYPES

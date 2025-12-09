@@ -4,6 +4,7 @@
   import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
+  import MasterList from '$lib/components/MasterList.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import SwipeHint from '$lib/components/SwipeHint.svelte';
   import EditItemDialog from '$lib/components/EditItemDialog.svelte';
@@ -49,6 +50,7 @@
   let deletingItemName = $state<string>('');
   let deletingItemListName = $state<string>('');
   let isLandscape = $state(false);
+  let masterMode = $state(false);
 
   // Manual swipe detection
   let touchStartX = $state(0);
@@ -109,6 +111,29 @@
     return currentList.items.filter(item => !item.deleted_at && item.is_checked).length;
   });
 
+  // Master list data - aggregates all unchecked items from shopping lists
+  let masterListData = $derived.by(() => {
+    return listsData
+      .filter(listWithItems => listWithItems.list.type === 'shopping') // Only shopping lists
+      .map(listWithItems => {
+        const uncheckedItems = listWithItems.items
+          .filter(item => !item.deleted_at && !item.is_checked) // Only unchecked items
+          .sort((a, b) => a.text.localeCompare(b.text)); // Sort alphabetically by item name
+
+        return {
+          listName: listWithItems.list.title,
+          listId: listWithItems.list.id,
+          items: uncheckedItems
+        };
+      })
+      .filter(group => group.items.length > 0); // Only include lists with unchecked items
+  });
+
+  // Total count for master list
+  let masterListTotalCount = $derived(
+    masterListData.reduce((sum, group) => sum + group.items.length, 0)
+  );
+
   // Manual swipe detection handlers
   function handleTouchStart(e: TouchEvent) {
     touchStartX = e.touches[0].clientX;
@@ -166,6 +191,11 @@
     isSettingsOpen = false;
   }
 
+  // Handle master mode toggle
+  function handleToggleMasterMode(enabled: boolean) {
+    masterMode = enabled;
+  }
+
   // Item actions
   async function handleAddItem(listId: number, text: string) {
     try {
@@ -202,22 +232,26 @@
 
   async function handleToggleItem(itemId: number) {
     try {
-      // Find the item to get its current state
+      // Find the item and its list to get current state and list info
       let currentItem: Item | undefined;
+      let currentList: ListWithItems | undefined;
       for (const list of listsData) {
         const item = list.items.find(i => i.id === itemId);
         if (item) {
           currentItem = item;
+          currentList = list;
           break;
         }
       }
 
-      if (!currentItem) return;
+      if (!currentItem || !currentList) return;
+
+      const newCheckedState = !currentItem.is_checked;
 
       const { error } = await data.supabase
         .from('items')
         .update({
-          is_checked: !currentItem.is_checked,
+          is_checked: newCheckedState,
           updated_at: new Date().toISOString()
         })
         .eq('id', itemId);
@@ -227,12 +261,45 @@
         throw error;
       }
 
+      // Log check action for shopping lists (only when checking, not unchecking)
+      if (newCheckedState && currentList.list.type === 'shopping' && authStore.userId) {
+        try {
+          // Insert to Supabase
+          const { error: logError } = await data.supabase
+            .from('item_check_logs')
+            .insert({
+              user_id: authStore.userId,
+              list_name: currentList.list.title,
+              item_name: currentItem.text,
+              checked_at: new Date().toISOString(),
+              list_id: currentList.list.id,
+              item_id: itemId
+            });
+
+          if (logError) {
+            console.error('Error logging check action:', logError);
+          }
+
+          // Also log to local DB for offline support
+          await db.logItemCheck(
+            authStore.userId,
+            currentList.list.title,
+            currentItem.text,
+            currentList.list.id,
+            itemId
+          );
+        } catch (logErr) {
+          console.error('Failed to log check action:', logErr);
+          // Don't throw - logging failure shouldn't prevent the check action
+        }
+      }
+
       // Update local state
       listsData = listsData.map(list => ({
         ...list,
         items: list.items.map(item =>
           item.id === itemId
-            ? { ...item, is_checked: !item.is_checked, updated_at: new Date().toISOString() }
+            ? { ...item, is_checked: newCheckedState, updated_at: new Date().toISOString() }
             : item
         )
       }));
@@ -515,12 +582,14 @@
 <div class="app-container">
   <!-- Header -->
   <Header
-    title={currentList?.list.title || 'Lists'}
-    listType={currentList?.list.type}
-    isShared={currentList?.list.is_shared}
-    totalCount={currentListTotalCount}
-    checkedCount={currentListCheckedCount}
+    title={masterMode ? 'All Lists' : (currentList?.list.title || 'Lists')}
+    listType={masterMode ? 'shopping' : currentList?.list.type}
+    isShared={false}
+    totalCount={masterMode ? masterListTotalCount : currentListTotalCount}
+    checkedCount={0}
     onSettingsClick={handleSettingsClick}
+    isMasterMode={masterMode}
+    onToggleMasterMode={handleToggleMasterMode}
   />
 
   <!-- Main content -->
@@ -650,44 +719,53 @@
     {:else}
       <!-- Mobile: Swipeable single list view -->
       <div class="mobile-view">
-        <div
-          class="swipe-container"
-          ontouchstart={handleTouchStart}
-          ontouchend={handleTouchEnd}
-        >
+        {#if masterMode}
+          <!-- Master list view - all unchecked items from all shopping lists -->
+          <MasterList
+            groups={masterListData}
+            onToggleItem={handleToggleItem}
+          />
+        {:else}
+          <!-- Normal list view - swipeable individual lists -->
           <div
-            class="lists-wrapper"
-            style="transform: translateX(-{currentListIndex * 100}%)"
+            class="swipe-container"
+            ontouchstart={handleTouchStart}
+            ontouchend={handleTouchEnd}
           >
-            {#each listsData as listData (listData.list.id)}
-              <div class="list-slide">
-                <ListCard
-                  list={listData.list}
-                  items={listData.items}
-                  userId={authStore.userId || ''}
-                  resetActionsTrigger={resetActionsTrigger}
-                  onAddItem={handleAddItem}
-                  onToggleItem={handleToggleItem}
-                  onEditItem={handleEditItem}
-                  onDeleteItem={handleDeleteItem}
-                />
-              </div>
-            {/each}
+            <div
+              class="lists-wrapper"
+              style="transform: translateX(-{currentListIndex * 100}%)"
+            >
+              {#each listsData as listData (listData.list.id)}
+                <div class="list-slide">
+                  <ListCard
+                    list={listData.list}
+                    items={listData.items}
+                    userId={authStore.userId || ''}
+                    resetActionsTrigger={resetActionsTrigger}
+                    onAddItem={handleAddItem}
+                    onToggleItem={handleToggleItem}
+                    onEditItem={handleEditItem}
+                    onDeleteItem={handleDeleteItem}
+                  />
+                </div>
+              {/each}
+            </div>
           </div>
-        </div>
 
-        <!-- Pagination dots -->
-        {#if hasMultipleLists}
-          <div class="pagination-dots">
-            {#each listsData as _, index}
-              <button
-                class="dot"
-                class:active={index === currentListIndex}
-                onclick={() => navigateToList(index)}
-                aria-label="View {listsData[index].list.title}"
-              ></button>
-            {/each}
-          </div>
+          <!-- Pagination dots -->
+          {#if hasMultipleLists}
+            <div class="pagination-dots">
+              {#each listsData as _, index}
+                <button
+                  class="dot"
+                  class:active={index === currentListIndex}
+                  onclick={() => navigateToList(index)}
+                  aria-label="View {listsData[index].list.title}"
+                ></button>
+              {/each}
+            </div>
+          {/if}
         {/if}
       </div>
 

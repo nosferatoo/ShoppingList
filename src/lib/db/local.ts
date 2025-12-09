@@ -59,6 +59,21 @@ export interface SyncMeta {
   value: string;
 }
 
+/**
+ * Local check logs table
+ * Tracks when shopping list items are checked for statistics
+ */
+export interface LocalCheckLog {
+  id?: number; // Auto-increment locally, undefined until synced
+  user_id: string;
+  list_name: string;
+  item_name: string;
+  checked_at: string;
+  list_id: number | null;
+  item_id: number | null;
+  _pending: boolean; // Local-only: has unsynced changes
+}
+
 // ============================================================================
 // DATABASE CLASS
 // ============================================================================
@@ -73,6 +88,7 @@ export class ListsDatabase extends Dexie {
   items!: Table<LocalItem, number>;
   userListSettings!: Table<LocalUserListSettings, number>;
   syncMeta!: Table<SyncMeta, string>;
+  checkLogs!: Table<LocalCheckLog, number>;
 
   constructor() {
     super('ListsApp');
@@ -118,6 +134,15 @@ export class ListsDatabase extends Dexie {
         // If migration fails, just clear the table - data will be resynced
         await trans.table('userListSettings').clear();
       }
+    });
+
+    // Version 4 schema - add checkLogs table for statistics
+    this.version(4).stores({
+      lists: 'id, owner_id, updated_at',
+      items: 'id, list_id, updated_at, _pending',
+      userListSettings: '++id, [user_id+list_id]',
+      syncMeta: 'key',
+      checkLogs: '++id, user_id, checked_at, _pending'
     });
   }
 
@@ -192,12 +217,41 @@ export class ListsDatabase extends Dexie {
    * Clear all data (for logout or reset)
    */
   async clearAll(): Promise<void> {
-    await this.transaction('rw', [this.lists, this.items, this.userListSettings, this.syncMeta], async () => {
+    await this.transaction('rw', [this.lists, this.items, this.userListSettings, this.syncMeta, this.checkLogs], async () => {
       await this.lists.clear();
       await this.items.clear();
       await this.userListSettings.clear();
       await this.syncMeta.clear();
+      await this.checkLogs.clear();
     });
+  }
+
+  /**
+   * Log a check action for statistics
+   */
+  async logItemCheck(
+    userId: string,
+    listName: string,
+    itemName: string,
+    listId: number,
+    itemId: number
+  ): Promise<void> {
+    await this.checkLogs.add({
+      user_id: userId,
+      list_name: listName,
+      item_name: itemName,
+      checked_at: new Date().toISOString(),
+      list_id: listId,
+      item_id: itemId,
+      _pending: true
+    });
+  }
+
+  /**
+   * Get all pending check logs that need to be synced
+   */
+  async getPendingCheckLogs(): Promise<LocalCheckLog[]> {
+    return await this.checkLogs.where('_pending').equals(1).toArray();
   }
 
   /**
