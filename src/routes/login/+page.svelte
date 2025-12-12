@@ -74,9 +74,9 @@
 
 <div class="login-container">
   <div class="login-content">
-    <div class="w-full max-w-[320px] sm:max-w-[360px]">
+    <div>
       <!-- Logo/Title -->
-      <div class="mb-10 text-center sm:mb-12">
+      <div class="mb-10 text-center sm:mb-10">
         <div class="icon-glow-container">
           <img
             src="/icons/icon.svg"
@@ -175,77 +175,88 @@
     z-index: 0;
     pointer-events: none;
 
-    /* Aurora gradients - same as desktop main screen */
+    /* Aurora gradients - optimized with darker transitions */
     background:
       /* Primary orange orb - top left */
       radial-gradient(
         ellipse 60vw 50vh at 15% 25%,
         rgba(249, 115, 22, 0.20) 0%,
-        rgba(249, 115, 22, 0.15) 18%,
-        rgba(249, 115, 22, 0.10) 32%,
-        rgba(249, 115, 22, 0.067) 42%,
-        rgba(249, 115, 22, 0.033) 52%,
-        rgba(249, 115, 22, 0.017) 60%,
-        transparent 75%
+        rgba(249, 115, 22, 0.12) 25%,
+        rgba(180, 70, 30, 0.08) 45%,
+        rgba(120, 40, 40, 0.04) 65%,
+        rgba(60, 20, 30, 0.02) 80%,
+        transparent 100%
       ),
       /* Teal orb - bottom right */
       radial-gradient(
-        ellipse 55vw 55vh at 85% 80%,
-        rgba(20, 184, 166, 0.17) 0%,
-        rgba(20, 184, 166, 0.128) 18%,
-        rgba(20, 184, 166, 0.085) 32%,
-        rgba(20, 184, 166, 0.057) 42%,
-        rgba(20, 184, 166, 0.028) 52%,
-        rgba(20, 184, 166, 0.015) 60%,
-        transparent 75%
+        ellipse 60vw 50vh at 85% 75%,
+        rgba(20, 184, 166, 0.15) 0%,
+        rgba(20, 184, 166, 0.09) 25%,
+        rgba(15, 120, 130, 0.06) 45%,
+        rgba(10, 70, 90, 0.03) 65%,
+        rgba(5, 40, 60, 0.015) 80%,
+        transparent 100%
       ),
       /* Purple orb - upper right */
       radial-gradient(
-        ellipse 50vw 45vh at 60% 35%,
+        ellipse 60vw 50vh at 60% 35%,
         rgba(168, 85, 247, 0.18) 0%,
-        rgba(168, 85, 247, 0.137) 18%,
-        rgba(168, 85, 247, 0.09) 32%,
-        rgba(168, 85, 247, 0.059) 42%,
-        rgba(168, 85, 247, 0.032) 52%,
-        rgba(168, 85, 247, 0.015) 60%,
-        transparent 75%
+        rgba(168, 85, 247, 0.11) 25%,
+        rgba(120, 60, 180, 0.07) 45%,
+        rgba(80, 40, 120, 0.04) 65%,
+        rgba(50, 25, 80, 0.02) 80%,
+        transparent 100%
       ),
       /* Blue orb - lower left */
       radial-gradient(
-        ellipse 45vw 40vh at 35% 75%,
-        rgba(59, 130, 246, 0.17) 0%,
-        rgba(59, 130, 246, 0.128) 18%,
-        rgba(59, 130, 246, 0.085) 32%,
-        rgba(59, 130, 246, 0.057) 42%,
-        rgba(59, 130, 246, 0.029) 52%,
-        rgba(59, 130, 246, 0.014) 60%,
-        transparent 75%
+        ellipse 60vw 50vh at 35% 75%,
+        rgba(59, 130, 246, 0.18) 0%,
+        rgba(59, 130, 246, 0.11) 25%,
+        rgba(40, 90, 180, 0.07) 45%,
+        rgba(25, 60, 120, 0.04) 65%,
+        rgba(15, 35, 80, 0.02) 80%,
+        transparent 100%
       );
 
+    /* Performance optimizations */
+    will-change: transform, opacity;
+    mix-blend-mode: screen;
+
     /* Increased blur for extremely smooth effect */
-    filter: blur(120px);
+    filter: blur(var(--blur, 120px));
+
+    /* Dynamic scale control */
+    transform: scale(var(--scale, 1));
 
     /* Slow, subtle animation */
-    animation: aurora-drift 20s ease-in-out infinite alternate;
+    animation: aurora-drift var(--duration, 18s) ease-in-out infinite alternate;
   }
 
   @keyframes aurora-drift {
-    0% {
+    0%, 100% {
       transform: translate(0, 0) scale(1);
-      opacity: 1;
     }
-    33% {
-      transform: translate(3%, -2%) scale(1.05);
-      opacity: 0.9;
+    25% {
+      transform: translate(4%, -3%) scale(1.04);
     }
-    66% {
-      transform: translate(-2%, 3%) scale(0.98);
-      opacity: 0.95;
+    50% {
+      transform: translate(-3%, 3%) scale(0.97);
     }
-    100% {
-      transform: translate(2%, -1%) scale(1.02);
-      opacity: 1;
+    75% {
+      transform: translate(2%, 1%) scale(1.03);
     }
+  }
+
+  /* Optional: CSS noise overlay for organic texture */
+  .login-container.noise-css::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' opacity='0.04'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /></filter><rect width='100%' height='100%' filter='url(%23n)' /></svg>");
+    background-size: 300px;
+    mix-blend-mode: overlay;
   }
 
   /* Login content - appears above aurora */
@@ -258,6 +269,53 @@
     justify-content: center;
     min-height: 100vh;
     padding: 1rem;
+  }
+
+  /* Glass morphism card wrapper */
+  .login-content > div {
+    width: 100%;
+    max-width: 440px;
+    padding: 3rem 2.5rem;
+
+    /* Frosted glass effect */
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    /* Simple subtle border that respects border-radius */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+
+    /* Soft shadow for depth */
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+
+    /* Position for pseudo-elements */
+    position: relative;
+  }
+
+  /* Aurora-inspired gradient border using pseudo-element */
+  .login-content > div::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 24px;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      rgba(249, 115, 22, 0.3),
+      rgba(168, 85, 247, 0.3),
+      rgba(20, 184, 166, 0.3),
+      rgba(59, 130, 246, 0.3)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
   }
 
   /* Icon glow container */
