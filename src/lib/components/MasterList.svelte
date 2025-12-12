@@ -90,54 +90,63 @@
     scrollbar-color: var(--border-default) transparent;
   }
 
-  /* List divider */
+  /* List divider - Pill Badge Style */
   .list-divider {
     /* Layout */
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
 
     /* Spacing */
     margin: var(--space-6) 0 var(--space-4) 0;
-    padding: 0 var(--space-2);
+    gap: var(--space-3);
   }
 
   .list-divider:first-child {
     margin-top: var(--space-2);
   }
 
-  .list-divider::before,
+  .list-divider::before {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to left,
+      var(--accent-primary) 0%,
+      var(--accent-primary) 60%,
+      transparent 100%
+    );
+  }
+
   .list-divider::after {
     content: '';
     flex: 1;
-    height: 2px;
+    height: 1px;
     background: linear-gradient(
       to right,
-      transparent,
-      var(--accent-primary),
-      transparent
+      var(--accent-primary) 0%,
+      var(--accent-primary) 60%,
+      transparent 100%
     );
-    opacity: 0.3;
   }
 
   .divider-text {
+    /* Style - Pill Badge */
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-md);
+
+    /* Spacing */
+    padding: var(--space-2) var(--space-4);
+
     /* Typography */
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     font-weight: var(--font-semibold);
     color: var(--accent-primary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-
-    /* Spacing */
-    padding: 0 var(--space-3);
-
-    /* Background */
-    background-color: var(--bg-primary);
-
-    /* Position */
-    position: relative;
-    z-index: 1;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
   }
 
   /* Empty state */

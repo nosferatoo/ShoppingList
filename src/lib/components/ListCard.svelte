@@ -523,7 +523,7 @@
     margin: 0;
   }
 
-  /* Separator */
+  /* Separator - Gradient Fade Line */
   .separator {
     /* Position */
     position: relative;
@@ -531,8 +531,9 @@
     /* Size */
     height: var(--space-3);
 
-    /* Background */
-    background-color: var(--bg-secondary);
+    /* Layout */
+    display: flex;
+    align-items: center;
 
     /* Spacing */
     margin: var(--space-2) var(--space-4);
@@ -540,12 +541,17 @@
 
   .separator::before {
     content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    transform: translateY(-50%);
-    border-top: 2px dashed var(--border-default);
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      var(--accent-primary) 15%,
+      var(--accent-primary) 85%,
+      transparent 100%
+    );
+    opacity: 0.6;
+    border-radius: var(--radius-full);
   }
 
   @media (max-width: 1023px) {
