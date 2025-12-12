@@ -2,12 +2,13 @@
   // Settings panel/modal component
   // Full-screen on mobile, modal on desktop
 
-  import { User, ListPlus, RefreshCw, LogOut, X, ChevronDown, Database } from 'lucide-svelte';
+  import { User, ListPlus, RefreshCw, LogOut, X, ChevronDown, Database, Palette } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { toastStore } from '$lib/stores/toast.svelte';
+  import { themeStore, type ThemeColor } from '$lib/stores/theme.svelte';
 
   interface Props {
     isOpen?: boolean;
@@ -25,7 +26,19 @@
   let lastSyncAt = $derived(syncStore.lastSyncAt);
 
   // Dropdown state
-  let isDropdownOpen = $state(false);
+  let isSyncDropdownOpen = $state(false);
+  let isThemeDropdownOpen = $state(false);
+
+  // Get current theme
+  let currentColor = $derived(themeStore.color);
+
+  // Theme options
+  const themeColors: { value: ThemeColor; label: string; preview: string }[] = [
+    { value: 'orange', label: 'Orange', preview: 'oklch(0.5939 0.1730 43.9251)' },
+    { value: 'teal', label: 'Teal', preview: 'oklch(0.5939 0.1730 180)' },
+    { value: 'blue', label: 'Blue', preview: 'oklch(0.5939 0.1730 250)' },
+    { value: 'purple', label: 'Purple', preview: 'oklch(0.5939 0.1730 310)' }
+  ];
 
   // Format last sync time (concise)
   let lastSyncFormatted = $derived.by(() => {
@@ -73,7 +86,7 @@
     if (!isOnline || isClearingCache) return;
 
     // Close dropdown immediately
-    isDropdownOpen = false;
+    isSyncDropdownOpen = false;
 
     try {
       await syncStore.performClearCacheAndSync();
@@ -128,6 +141,12 @@
     if (e.key === 'Escape') {
       onClose?.();
     }
+  }
+
+  // Handle theme color change
+  function handleColorChange(color: ThemeColor) {
+    themeStore.setColor(color);
+    isThemeDropdownOpen = false;
   }
 </script>
 
@@ -202,6 +221,51 @@
           </Button>
         </section>
 
+        <!-- Theme Section -->
+        <section class="settings-section">
+          <div class="theme-button-container">
+            <!-- Main Theme Button -->
+            <button
+              type="button"
+              class="theme-button theme-button-main"
+              onclick={() => isThemeDropdownOpen = !isThemeDropdownOpen}
+              aria-label="Change theme"
+            >
+              <div class="menu-item-icon">
+                <Palette size={20} />
+              </div>
+              <span class="menu-item-text">Theme</span>
+              <div class="theme-preview">
+                <div class="theme-color-dot" style="background: {themeColors.find(t => t.value === currentColor)?.preview}"></div>
+              </div>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <DropdownMenu.Root bind:open={isThemeDropdownOpen}>
+              <DropdownMenu.Trigger
+                type="button"
+                aria-label="Theme options"
+              >
+                <ChevronDown size={18} />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content class="theme-dropdown-content" align="end">
+                {#each themeColors as color}
+                  <DropdownMenu.Item
+                    class="theme-dropdown-item"
+                    onSelect={() => handleColorChange(color.value)}
+                  >
+                    <div class="theme-color-indicator" style="background: {color.preview}"></div>
+                    <span>{color.label}</span>
+                    {#if currentColor === color.value}
+                      <div class="theme-checkmark">✓</div>
+                    {/if}
+                  </DropdownMenu.Item>
+                {/each}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </div>
+        </section>
+
         <!-- Sync Section -->
         <section class="settings-section">
           <div class="sync-button-container">
@@ -237,7 +301,7 @@
             </button>
 
             <!-- Dropdown Menu -->
-            <DropdownMenu.Root bind:open={isDropdownOpen}>
+            <DropdownMenu.Root bind:open={isSyncDropdownOpen}>
               <DropdownMenu.Trigger
                 type="button"
                 class={syncStatus}
@@ -858,5 +922,170 @@
   :global(.sync-dropdown-item[disabled]) {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* ============================================================================
+     THEME BUTTON STYLES
+     ============================================================================ */
+
+  /* Theme preview in button */
+  .theme-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+
+  .theme-color-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--border-default);
+  }
+
+  /* Split Button Container */
+  .theme-button-container {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-height: 64px;
+  }
+
+  .theme-button {
+    /* Reset */
+    all: unset;
+    box-sizing: border-box;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-3);
+
+    /* Spacing */
+    padding: var(--space-3) var(--space-4);
+    height: 64px;
+
+    /* Style */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+
+    /* Typography */
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+
+    /* Transition */
+    transition: background-color var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+
+  .theme-button-main {
+    flex: 1;
+    min-width: 0;
+    border-right: none;
+    border-top-left-radius: var(--radius-md);
+    border-bottom-left-radius: var(--radius-md);
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .theme-button:hover:not(:disabled) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+
+  .theme-button:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Arrow button - targets shadcn Trigger */
+  .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
+    /* Reset */
+    all: unset;
+    box-sizing: border-box;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* Size */
+    width: 48px;
+    height: 64px;
+    flex-shrink: 0;
+    padding: 0;
+
+    /* Style */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-top-right-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid var(--border-subtle);
+    cursor: pointer;
+
+    /* Color */
+    color: var(--text-primary);
+
+    /* Transition */
+    transition: color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast);
+  }
+
+  .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled)) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-default);
+  }
+
+  .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Dropdown Content */
+  :global(.theme-dropdown-content) {
+    min-width: 200px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    padding: var(--space-1);
+    z-index: 110;
+  }
+
+  :global(.theme-dropdown-item) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+  }
+
+  :global(.theme-dropdown-item:hover) {
+    background-color: var(--bg-hover);
+  }
+
+  .theme-color-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    border: 2px solid var(--border-default);
+    flex-shrink: 0;
+  }
+
+  .theme-checkmark {
+    margin-left: auto;
+    color: var(--primary);
+    font-weight: var(--font-bold);
   }
 </style>

@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
+  import { themeStore } from '$lib/stores/theme.svelte';
   import { registerServiceWorker, captureInstallPrompt } from '$lib/pwa/serviceWorkerHelper';
   import '../app.css';
 
@@ -53,6 +54,9 @@
         // Invalidate data for new user
         await invalidate('supabase:auth');
 
+        // Initialize theme with user preferences
+        await themeStore.setUser(session.user.id);
+
         // Initialize sync system
         await syncStore.initialize(session.user.id);
 
@@ -66,6 +70,7 @@
         // User signed out, cleanup
         currentUserId = null;
         await invalidate('supabase:auth');
+        await themeStore.setUser(null);
         syncStore.cleanup();
       }
       // Ignore all other events (TOKEN_REFRESHED, etc.) to prevent UI interference
@@ -77,6 +82,11 @@
         .then(({ data: { user } }) => {
           if (user) {
             currentUserId = user.id;
+            // Initialize theme with user preferences
+            themeStore.setUser(user.id).catch((error) => {
+              console.error('Theme initialization failed:', error);
+            });
+            // Initialize sync
             syncStore.initialize(user.id).then(() => {
               syncStore.performSync().catch((error) => {
                 console.error('Initial sync failed:', error);

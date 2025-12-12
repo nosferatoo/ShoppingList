@@ -105,6 +105,21 @@ create index item_check_logs_checked_at_idx on public.item_check_logs(checked_at
 create index item_check_logs_list_name_idx on public.item_check_logs(list_name);
 create index item_check_logs_item_name_idx on public.item_check_logs(item_name);
 
+-- ----------------------------------------------------------------------------
+-- USER PREFERENCES TABLE (theme and other user-specific settings)
+-- ----------------------------------------------------------------------------
+create table public.user_preferences (
+  id serial primary key,
+  user_id uuid references auth.users(id) on delete cascade not null unique,
+  theme_color text not null default 'orange' check (theme_color in ('orange', 'teal', 'blue', 'purple')),
+  theme_mode text not null default 'dark' check (theme_mode in ('light', 'dark')),
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+-- Indexes
+create index user_preferences_user_id_idx on public.user_preferences(user_id);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================================
@@ -114,6 +129,7 @@ alter table public.items enable row level security;
 alter table public.list_shares enable row level security;
 alter table public.user_list_settings enable row level security;
 alter table public.item_check_logs enable row level security;
+alter table public.user_preferences enable row level security;
 
 -- ----------------------------------------------------------------------------
 -- LISTS POLICIES
@@ -299,6 +315,26 @@ create policy "Users can create own check logs"
   on public.item_check_logs for insert
   with check (auth.uid() = user_id);
 
+-- ----------------------------------------------------------------------------
+-- USER PREFERENCES POLICIES
+-- ----------------------------------------------------------------------------
+
+create policy "Users can view own preferences"
+  on public.user_preferences for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create own preferences"
+  on public.user_preferences for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own preferences"
+  on public.user_preferences for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own preferences"
+  on public.user_preferences for delete
+  using (auth.uid() = user_id);
+
 -- ============================================================================
 -- FUNCTIONS & TRIGGERS
 -- ============================================================================
@@ -368,6 +404,11 @@ create trigger items_updated_at
 
 create trigger user_list_settings_updated_at
   before update on public.user_list_settings
+  for each row
+  execute function public.handle_updated_at();
+
+create trigger user_preferences_updated_at
+  before update on public.user_preferences
   for each row
   execute function public.handle_updated_at();
 

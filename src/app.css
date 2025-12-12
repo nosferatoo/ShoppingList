@@ -162,42 +162,35 @@
 }
 
 /* ============================================================================
-   ORANGEISH #1 THEME - Light Mode
-   Fresh teal accents on light background
+   THEME COLOR VARIANTS
+   4 colors (orange, teal, blue, purple) in dark mode only
    ============================================================================ */
-.light {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.2046 0 0);
-  --card: oklch(0.9911 0 0);
-  --card-foreground: oklch(0.2046 0 0);
-  --popover: oklch(0.9911 0 0);
-  --popover-foreground: oklch(0.4386 0 0);
-  --primary: oklch(0.8827 0.1712 158.7781);
-  --primary-foreground: oklch(0.2667 0.0211 164.7993);
-  --secondary: oklch(0.9940 0 0);
-  --secondary-foreground: oklch(0.2046 0 0);
-  --muted: oklch(0.9461 0 0);
-  --muted-foreground: oklch(0.2435 0 0);
-  --accent: oklch(0.9461 0 0);
-  --accent-foreground: oklch(0.2435 0 0);
-  --destructive: oklch(0.5783 0.2203 31.8089);
-  --destructive-foreground: oklch(0.9934 0.0032 17.2118);
-  --border: oklch(0.9037 0 0);
-  --input: oklch(0.9731 0 0);
-  --ring: oklch(0.8827 0.1712 158.7781);
-  --chart-1: oklch(0.8827 0.1712 158.7781);
-  --chart-2: oklch(0.6225 0.2041 259.9027);
-  --chart-3: oklch(0.5964 0.2400 291.2367);
-  --chart-4: oklch(0.7857 0.1716 68.5720);
-  --chart-5: oklch(0.7378 0.1657 160.4561);
-  --sidebar: oklch(0.9911 0 0);
-  --sidebar-foreground: oklch(0.5452 0 0);
-  --sidebar-primary: oklch(0.8827 0.1712 158.7781);
-  --sidebar-primary-foreground: oklch(0.2667 0.0211 164.7993);
-  --sidebar-accent: oklch(0.9461 0 0);
-  --sidebar-accent-foreground: oklch(0.2435 0 0);
-  --sidebar-border: oklch(0.9037 0 0);
-  --sidebar-ring: oklch(0.8827 0.1712 158.7781);
+
+/* Dark Mode Themes (default is orange) */
+
+/* Orange - Dark (default, already defined in :root) */
+:root[data-theme-color="orange"],
+:root:not([data-theme-color]) {
+  --primary: oklch(0.5939 0.1730 43.9251);
+  --ring: oklch(0.5939 0.1730 43.9251);
+}
+
+/* Teal - Dark */
+:root[data-theme-color="teal"] {
+  --primary: oklch(0.5939 0.1730 180);
+  --ring: oklch(0.5939 0.1730 180);
+}
+
+/* Blue - Dark */
+:root[data-theme-color="blue"] {
+  --primary: oklch(0.5939 0.1730 250);
+  --ring: oklch(0.5939 0.1730 250);
+}
+
+/* Purple - Dark */
+:root[data-theme-color="purple"] {
+  --primary: oklch(0.5939 0.1730 310);
+  --ring: oklch(0.5939 0.1730 310);
 }
 
 /* ============================================================================

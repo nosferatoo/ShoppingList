@@ -175,70 +175,54 @@
     z-index: 0;
     pointer-events: none;
 
-    /* Aurora gradients - OKLCH color space for perceptually smooth transitions */
+    /* Aurora gradients - same as desktop main screen */
     background:
       /* Primary orange orb - top left */
       radial-gradient(
-        ellipse 60vw 50vh at 15% 25% in oklch,
-        oklch(0.68 0.19 35 / 0.12) 0%,
-        oklch(0.66 0.17 35 / 0.105) 10%,
-        oklch(0.64 0.15 35 / 0.09) 18%,
-        oklch(0.61 0.13 35 / 0.075) 25%,
-        oklch(0.58 0.11 35 / 0.06) 32%,
-        oklch(0.55 0.09 35 / 0.05) 37%,
-        oklch(0.52 0.07 35 / 0.04) 42%,
-        oklch(0.50 0.05 35 / 0.03) 47%,
-        oklch(0.48 0.03 35 / 0.02) 52%,
-        oklch(0.46 0.015 35 / 0.01) 60%,
-        oklch(0.45 0.001 35 / 0) 75%
+        ellipse 60vw 50vh at 15% 25%,
+        rgba(249, 115, 22, 0.20) 0%,
+        rgba(249, 115, 22, 0.15) 18%,
+        rgba(249, 115, 22, 0.10) 32%,
+        rgba(249, 115, 22, 0.067) 42%,
+        rgba(249, 115, 22, 0.033) 52%,
+        rgba(249, 115, 22, 0.017) 60%,
+        transparent 75%
       ),
-      /* Teal orb - top right */
+      /* Teal orb - bottom right */
       radial-gradient(
-        ellipse 55vw 55vh at 85% 55% in oklch,
-        oklch(0.70 0.13 190 / 0.09) 0%,
-        oklch(0.68 0.115 190 / 0.079) 10%,
-        oklch(0.66 0.10 190 / 0.068) 18%,
-        oklch(0.63 0.085 190 / 0.057) 25%,
-        oklch(0.60 0.07 190 / 0.045) 32%,
-        oklch(0.57 0.055 190 / 0.0375) 37%,
-        oklch(0.54 0.04 190 / 0.03) 42%,
-        oklch(0.51 0.03 190 / 0.0225) 47%,
-        oklch(0.48 0.02 190 / 0.015) 52%,
-        oklch(0.46 0.01 190 / 0.008) 60%,
-        oklch(0.45 0.001 190 / 0) 75%
+        ellipse 55vw 55vh at 85% 80%,
+        rgba(20, 184, 166, 0.17) 0%,
+        rgba(20, 184, 166, 0.128) 18%,
+        rgba(20, 184, 166, 0.085) 32%,
+        rgba(20, 184, 166, 0.057) 42%,
+        rgba(20, 184, 166, 0.028) 52%,
+        rgba(20, 184, 166, 0.015) 60%,
+        transparent 75%
       ),
-      /* Blue orb - bottom center */
+      /* Purple orb - upper right */
       radial-gradient(
-        ellipse 50vw 45vh at 50% 75% in oklch,
-        oklch(0.62 0.22 250 / 0.07) 0%,
-        oklch(0.60 0.19 250 / 0.062) 10%,
-        oklch(0.58 0.17 250 / 0.053) 18%,
-        oklch(0.56 0.145 250 / 0.044) 25%,
-        oklch(0.54 0.12 250 / 0.035) 32%,
-        oklch(0.52 0.095 250 / 0.029) 37%,
-        oklch(0.50 0.07 250 / 0.023) 42%,
-        oklch(0.48 0.05 250 / 0.0175) 47%,
-        oklch(0.46 0.03 250 / 0.012) 52%,
-        oklch(0.45 0.015 250 / 0.006) 60%,
-        oklch(0.44 0.001 250 / 0) 75%
+        ellipse 50vw 45vh at 60% 35%,
+        rgba(168, 85, 247, 0.18) 0%,
+        rgba(168, 85, 247, 0.137) 18%,
+        rgba(168, 85, 247, 0.09) 32%,
+        rgba(168, 85, 247, 0.059) 42%,
+        rgba(168, 85, 247, 0.032) 52%,
+        rgba(168, 85, 247, 0.015) 60%,
+        transparent 75%
       ),
-      /* Secondary orange orb - bottom left for depth */
+      /* Blue orb - lower left */
       radial-gradient(
-        ellipse 45vw 40vh at 30% 70% in oklch,
-        oklch(0.68 0.19 35 / 0.06) 0%,
-        oklch(0.66 0.17 35 / 0.0525) 10%,
-        oklch(0.64 0.15 35 / 0.045) 18%,
-        oklch(0.61 0.13 35 / 0.0375) 25%,
-        oklch(0.58 0.11 35 / 0.03) 32%,
-        oklch(0.55 0.09 35 / 0.025) 37%,
-        oklch(0.52 0.07 35 / 0.02) 42%,
-        oklch(0.50 0.05 35 / 0.015) 47%,
-        oklch(0.48 0.03 35 / 0.01) 52%,
-        oklch(0.46 0.015 35 / 0.005) 60%,
-        oklch(0.45 0.001 35 / 0) 75%
+        ellipse 45vw 40vh at 35% 75%,
+        rgba(59, 130, 246, 0.17) 0%,
+        rgba(59, 130, 246, 0.128) 18%,
+        rgba(59, 130, 246, 0.085) 32%,
+        rgba(59, 130, 246, 0.057) 42%,
+        rgba(59, 130, 246, 0.029) 52%,
+        rgba(59, 130, 246, 0.014) 60%,
+        transparent 75%
       );
 
-    /* Blur for smooth effect */
+    /* Increased blur for extremely smooth effect */
     filter: blur(120px);
 
     /* Slow, subtle animation */
@@ -285,7 +269,7 @@
     margin: 0 auto 2rem;
   }
 
-  /* Aurora glow behind icon */
+  /* Color-shifting aurora glow behind icon - Base layer (Orange) */
   .icon-glow-container::before {
     content: '';
     position: absolute;
@@ -293,54 +277,116 @@
     z-index: 0;
     pointer-events: none;
 
-    /* Orange aurora glow */
+    /* Orange glow layer */
     background:
-      /* Primary orange glow */
       radial-gradient(
         circle at center,
-        rgba(249, 115, 22, 0.3) 0%,
-        rgba(249, 115, 22, 0.22) 20%,
-        rgba(249, 115, 22, 0.15) 35%,
+        rgba(249, 115, 22, 0.35) 0%,
+        rgba(249, 115, 22, 0.25) 20%,
+        rgba(249, 115, 22, 0.17) 35%,
         rgba(249, 115, 22, 0.1) 45%,
         rgba(249, 115, 22, 0.05) 55%,
         transparent 70%
-      ),
-      /* Warmer orange accent */
-      radial-gradient(
-        circle at 60% 40%,
-        rgba(251, 146, 60, 0.2) 0%,
-        rgba(251, 146, 60, 0.12) 25%,
-        rgba(251, 146, 60, 0.06) 40%,
-        transparent 60%
-      ),
-      /* Deeper orange accent */
-      radial-gradient(
-        circle at 40% 60%,
-        rgba(234, 88, 12, 0.18) 0%,
-        rgba(234, 88, 12, 0.1) 25%,
-        rgba(234, 88, 12, 0.05) 40%,
-        transparent 60%
       );
 
     /* Smooth blur effect */
-    filter: blur(60px);
+    filter: blur(70px);
 
-    /* Subtle pulsing animation */
-    animation: icon-aurora-pulse 8s ease-in-out infinite alternate;
+    /* Color-shifting animation - cycles through aurora colors */
+    animation: icon-color-shift 36s ease-in-out infinite;
   }
 
-  @keyframes icon-aurora-pulse {
+  /* Additional color layers using ::after for smooth color transitions */
+  .icon-glow-container::after {
+    content: '';
+    position: absolute;
+    inset: -80px;
+    z-index: 0;
+    pointer-events: none;
+
+    /* Multi-color glow layers - will fade in/out */
+    background:
+      /* Teal glow */
+      radial-gradient(
+        circle at 55% 45%,
+        rgba(20, 184, 166, 0.35) 0%,
+        rgba(20, 184, 166, 0.25) 20%,
+        rgba(20, 184, 166, 0.17) 35%,
+        rgba(20, 184, 166, 0.1) 45%,
+        transparent 65%
+      ),
+      /* Purple glow */
+      radial-gradient(
+        circle at 45% 55%,
+        rgba(168, 85, 247, 0.35) 0%,
+        rgba(168, 85, 247, 0.25) 20%,
+        rgba(168, 85, 247, 0.17) 35%,
+        rgba(168, 85, 247, 0.1) 45%,
+        transparent 65%
+      ),
+      /* Blue glow */
+      radial-gradient(
+        circle at center,
+        rgba(59, 130, 246, 0.35) 0%,
+        rgba(59, 130, 246, 0.25) 20%,
+        rgba(59, 130, 246, 0.17) 35%,
+        rgba(59, 130, 246, 0.1) 45%,
+        transparent 65%
+      );
+
+    /* Smooth blur effect */
+    filter: blur(70px);
+
+    /* Complementary color-shifting animation - offset timing */
+    animation: icon-color-shift-alt 36s ease-in-out infinite;
+    animation-delay: -18s; /* Start halfway through cycle */
+  }
+
+  /* Keyframes for main color layer - fades between visible and subtle */
+  @keyframes icon-color-shift {
     0% {
-      transform: scale(1);
       opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+    25% {
+      opacity: 0.3;
+      transform: scale(1.05) rotate(5deg);
     }
     50% {
-      transform: scale(1.08) rotate(5deg);
-      opacity: 0.85;
+      opacity: 0.6;
+      transform: scale(1.02) rotate(-3deg);
+    }
+    75% {
+      opacity: 0.4;
+      transform: scale(1.08) rotate(2deg);
     }
     100% {
-      transform: scale(1.05) rotate(-3deg);
-      opacity: 0.95;
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  /* Keyframes for alternate color layers - opposite phase */
+  @keyframes icon-color-shift-alt {
+    0% {
+      opacity: 0.4;
+      transform: scale(1.05) rotate(0deg);
+    }
+    25% {
+      opacity: 1;
+      transform: scale(1) rotate(-4deg);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.06) rotate(3deg);
+    }
+    75% {
+      opacity: 0.8;
+      transform: scale(1.02) rotate(-2deg);
+    }
+    100% {
+      opacity: 0.4;
+      transform: scale(1.05) rotate(0deg);
     }
   }
 

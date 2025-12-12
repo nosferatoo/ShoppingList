@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aurora Effect — Refactored & Optimized</title>
+<style>
+  :root{
+    --bg: #070707;
+    --text: #eaeaea;
+    --muted: #a8a8a8;
+
+    /* tuning variables */
+    --base-blur: 180px;       /* main large blur */
+    --secondary-blur: 220px;  /* additional blur layer */
+    --icon-blur: 64px;
+    --aurora-duration: 24s;
+    --icon-duration: 36s;
+    --noise-opacity: 0.035;   /* adjust to taste */
+  }
+
+  /* Reset */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    min-height:100%;
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Page wrapper */
+  .aurora-container{
+    position:relative;
+    min-height:100vh;
+    isolation:isolate; /* create new stacking context for blend modes */
+    overflow:hidden;
+  }
+
+  /*
+    Layering strategy:
+    - ::before = base large soft radial blobs (blurred)
+    - ::after  = secondary soft layer with different shape & movement (more blur)
+    - .noise-overlay = subtle SVG noise to break banding (very low opacity)
+    All animations only change transform/opacity to keep them GPU-friendly.
+  */
+
+  .aurora-container::before,
+  .aurora-container::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    will-change:transform,opacity;
+    mix-blend-mode: screen; /* additive-like blending */
+  }
+
+  /* Base blobs */
+  .aurora-container::before{
+    background:
+      /* orange top-left */
+      radial-gradient(ellipse 62vw 52vh at 14% 24%,
+        rgba(249,115,22,0.20) 0%,
+        rgba(249,115,22,0.185) 12%,
+        rgba(249,115,22,0.165) 22%,
+        rgba(249,115,22,0.14) 34%,
+        rgba(249,115,22,0.105) 48%,
+        rgba(249,115,22,0.07) 62%,
+        rgba(249,115,22,0.035) 78%,
+        transparent 100%),
+      /* teal bottom-right */
+      radial-gradient(ellipse 56vw 56vh at 86% 80%,
+        rgba(20,184,166,0.17) 0%,
+        rgba(20,184,166,0.155) 12%,
+        rgba(20,184,166,0.13) 24%,
+        rgba(20,184,166,0.095) 40%,
+        rgba(20,184,166,0.06) 56%,
+        rgba(20,184,166,0.03) 72%,
+        transparent 100%),
+      /* purple upper-right */
+      radial-gradient(ellipse 50vw 44vh at 60% 34%,
+        rgba(168,85,247,0.18) 0%,
+        rgba(168,85,247,0.165) 12%,
+        rgba(168,85,247,0.14) 24%,
+        rgba(168,85,247,0.10) 42%,
+        rgba(168,85,247,0.06) 62%,
+        rgba(168,85,247,0.03) 78%,
+        transparent 100%),
+      /* blue lower-left */
+      radial-gradient(ellipse 46vw 40vh at 35% 76%,
+        rgba(59,130,246,0.17) 0%,
+        rgba(59,130,246,0.155) 12%,
+        rgba(59,130,246,0.13) 24%,
+        rgba(59,130,246,0.095) 40%,
+        rgba(59,130,246,0.06) 56%,
+        rgba(59,130,246,0.03) 72%,
+        transparent 100%);
+    filter: blur(var(--base-blur));
+    transform: translateZ(0) scale(1);
+    animation: aurora-drift var(--aurora-duration) cubic-bezier(.4,0,.2,1) infinite alternate;
+    opacity: 1;
+  }
+
+  /* Secondary moving / parallax layer to reduce patterning and add depth */
+  .aurora-container::after{
+    background:
+      radial-gradient(ellipse 75vw 60vh at 10% 70%,
+        rgba(249,115,22,0.12) 0%,
+        rgba(249,115,22,0.095) 14%,
+        rgba(249,115,22,0.07) 32%,
+        rgba(249,115,22,0.04) 56%,
+        transparent 100%),
+      radial-gradient(ellipse 70vw 70vh at 88% 20%,
+        rgba(59,130,246,0.13) 0%,
+        rgba(59,130,246,0.10) 18%,
+        rgba(59,130,246,0.06) 42%,
+        transparent 100%),
+      radial-gradient(ellipse 60vw 50vh at 50% 60%,
+        rgba(168,85,247,0.12) 0%,
+        rgba(168,85,247,0.095) 18%,
+        rgba(168,85,247,0.05) 48%,
+        transparent 100%);
+    filter: blur(var(--secondary-blur));
+    transform: translateZ(0) scale(1.03);
+    animation: aurora-drift-2 calc(var(--aurora-duration) * 1.2) cubic-bezier(.4,0,.2,1) infinite alternate;
+    opacity: 0.95;
+  }
+
+  @keyframes aurora-drift{
+    0%   { transform: translate(0%,0%) scale(1); }
+    25%  { transform: translate(4%,-3%) scale(1.04); }
+    50%  { transform: translate(-3%,3%) scale(0.98); }
+    75%  { transform: translate(2%,1%) scale(1.02); }
+    100% { transform: translate(0%,-1%) scale(1.01); }
+  }
+
+  @keyframes aurora-drift-2{
+    0%   { transform: translate(0%,0%) scale(1.03); }
+    25%  { transform: translate(-3%,2%) scale(1.04); }
+    50%  { transform: translate(2%,-2%) scale(1.02); }
+    75%  { transform: translate(-1%,-1%) scale(1.05); }
+    100% { transform: translate(1%,1%) scale(1.03); }
+  }
+
+  /* very subtle noise overlay implemented with an inlined SVG fractalNoise (low cost) */
+  .noise-overlay{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    opacity: var(--noise-opacity);
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 480px;
+    will-change: opacity;
+  }
+
+  /* content sits above aurora layers */
+  .content{
+    position:relative;
+    z-index:5;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:2rem;
+  }
+
+  .demo-card{
+    max-width:460px;
+    text-align:center;
+    backdrop-filter: blur(6px);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius:14px;
+    padding:2rem;
+  }
+
+  .icon-glow-container{
+    position:relative;
+    width:128px;height:128px;margin:0 auto 1.5rem;
+  }
+
+  /* icon glow: use two layered pseudo elements for smooth color blending */
+  .icon-glow-container::before,
+  .icon-glow-container::after{
+    content:"";
+    position:absolute;
+    inset:-64px;
+    border-radius:32px;
+    pointer-events:none;
+    z-index:0;
+    filter: blur(var(--icon-blur));
+    will-change:transform,opacity;
+    mix-blend-mode: screen;
+    opacity:0.95;
+  }
+
+  .icon-glow-container::before{
+    background:
+      radial-gradient(circle at 30% 30%, rgba(249,115,22,0.36) 0%, rgba(249,115,22,0.22) 20%, rgba(249,115,22,0.10) 40%, transparent 70%),
+      radial-gradient(circle at 70% 70%, rgba(59,130,246,0.32) 0%, rgba(59,130,246,0.18) 20%, rgba(59,130,246,0.08) 40%, transparent 70%);
+    transform: scale(1);
+    animation: icon-shift var(--icon-duration) ease-in-out infinite;
+  }
+
+  .icon-glow-container::after{
+    background:
+      radial-gradient(circle at 60% 35%, rgba(168,85,247,0.30) 0%, rgba(20,184,166,0.28) 20%, transparent 65%);
+    transform: scale(1.03);
+    animation: icon-shift-alt calc(var(--icon-duration) * 1.02) ease-in-out infinite;
+    opacity:0.9;
+  }
+
+  @keyframes icon-shift{
+    0%{ transform: scale(1) rotate(0deg); opacity:1; }
+    25%{ transform: scale(1.05) rotate(4deg); opacity:0.5; }
+    50%{ transform: scale(1.02) rotate(-3deg); opacity:0.8; }
+    75%{ transform: scale(1.06) rotate(2deg); opacity:0.6; }
+    100%{ transform: scale(1) rotate(0deg); opacity:1; }
+  }
+
+  @keyframes icon-shift-alt{
+    0%{ transform: scale(1.03) rotate(-1deg); opacity:0.6; }
+    25%{ transform: scale(1) rotate(3deg); opacity:1; }
+    50%{ transform: scale(1.04) rotate(-2deg); opacity:0.5; }
+    75%{ transform: scale(1.01) rotate(1deg); opacity:0.8; }
+    100%{ transform: scale(1.03) rotate(-1deg); opacity:0.6; }
+  }
+
+  .icon-placeholder{
+    position:relative;
+    z-index:1;
+    width:128px;height:128px;border-radius:20px;
+    background: linear-gradient(135deg,#f97316 0%,#ea580c 100%);
+    display:flex;align-items:center;justify-content:center;font-size:56px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  }
+
+  h1{font-size:1.6rem;margin-bottom:0.35rem}
+  p{color:var(--muted);margin-bottom:1rem}
+
+  .demo-info{
+    margin-top:1.2rem;padding:1.25rem;border-radius:10px;background:rgba(255,255,255,0.02);
+    color:#d6d6d6;font-size:0.92rem;line-height:1.6;border:1px solid rgba(255,255,255,0.03)
+  }
+
+  /* PERFORMANCE / ACCESSIBILITY */
+  @media (prefers-reduced-motion: reduce){
+    .aurora-container::before,
+    .aurora-container::after,
+    .icon-glow-container::before,
+    .icon-glow-container::after{
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* mobile-friendly reductions */
+  @media (max-width:768px){
+    :root{
+      --base-blur: 120px;
+      --secondary-blur: 140px;
+      --icon-blur: 44px;
+      --aurora-duration: 30s; /* slower on mobile to reduce perceptible jank */
+    }
+    .noise-overlay{ background-size: 300px; }
+    .demo-card{ padding:1.25rem; margin:1rem; }
+  }
+
+  /* lower-power devices (basic heuristic): reduce blur/opacity if devicePixelRatio is low */
+  @media (-webkit-min-device-pixel-ratio: 1), (min-resolution: 96dpi){
+    /* no-op: included for future device-specific tuning */
+  }
+
+</style>
+</head>
+<body>
+  <div class="aurora-container" id="aurora">
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <main class="content" role="main" aria-label="Aurora demo content">
+      <section class="demo-card" aria-hidden="false">
+        <div class="icon-glow-container" aria-hidden="true">
+          <div class="icon-placeholder" aria-hidden="true">✨</div>
+        </div>
+
+        <h1>Aurora Effect — Refactored</h1>
+        <p>Optimized for smoothness, reduced banding, and better performance across devices.</p>
+
+        <div class="demo-info">
+          <ul>
+            <li>Multi-layered blurred gradients for depth and reduced banding</li>
+            <li>Subtle SVG noise overlay to eliminate color banding</li>
+            <li>Transform/opacity-only animations (GPU friendly)</li>
+            <li>Prefers-reduced-motion respected</li>
+            <li>Mobile adjustments for blur and animation timing</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

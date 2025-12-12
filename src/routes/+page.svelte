@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown } from 'lucide-svelte';
+  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown, Palette } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import MasterList from '$lib/components/MasterList.svelte';
@@ -13,6 +13,7 @@
   import { syncStore } from '$lib/stores/sync.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
   import { toastStore } from '$lib/stores/toast.svelte';
+  import { themeStore, type ThemeColor } from '$lib/stores/theme.svelte';
   import { db } from '$lib/db/local';
   import type { SyncResult } from '$lib/db/sync';
   import {
@@ -42,6 +43,7 @@
   let isSettingsOpen = $state(false);
   let isEditListsModalOpen = $state(false);
   let isUserDropdownOpen = $state(false);
+  let isThemeDropdownOpen = $state(false);
   let listsData = $state<ListWithItems[]>(data.lists);
   let showSwipeHint = $state(false);
   let editingItem = $state<Item | null>(null);
@@ -478,6 +480,20 @@
     }
   }
 
+  // Theme options
+  const themeColors: { value: ThemeColor; label: string; preview: string }[] = [
+    { value: 'orange', label: 'Orange', preview: 'oklch(0.5939 0.1730 43.9251)' },
+    { value: 'teal', label: 'Teal', preview: 'oklch(0.5939 0.1730 180)' },
+    { value: 'blue', label: 'Blue', preview: 'oklch(0.5939 0.1730 250)' },
+    { value: 'purple', label: 'Purple', preview: 'oklch(0.5939 0.1730 310)' }
+  ];
+
+  // Handle theme color change
+  function handleThemeColorChange(color: ThemeColor) {
+    themeStore.setColor(color);
+    isThemeDropdownOpen = false;
+  }
+
   // Load lists from IndexedDB
   async function loadListsFromIndexedDB() {
     if (!browser || !authStore.userId) return;
@@ -707,6 +723,49 @@
           <ListPlus size={18} />
           <span class="button-text">Edit lists</span>
         </button>
+
+        <!-- Theme Button with Dropdown -->
+        <div class="theme-button-container">
+          <!-- Main Theme Button -->
+          <button
+            type="button"
+            class="action-button-floating theme-button-main"
+            onclick={() => isThemeDropdownOpen = !isThemeDropdownOpen}
+            aria-label="Change theme"
+            title="Change theme"
+          >
+            <Palette size={18} />
+            <span class="button-text">Theme</span>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <DropdownMenu.Root bind:open={isThemeDropdownOpen}>
+            <DropdownMenu.Trigger
+              type="button"
+              aria-label="Theme options"
+            >
+              <ChevronDown size={18} />
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Content align="end" class="theme-dropdown-content">
+              <div class="theme-dropdown-header">
+                <span class="theme-dropdown-title">Theme Color</span>
+              </div>
+              {#each themeColors as color}
+                <DropdownMenu.Item
+                  class="theme-dropdown-item"
+                  onSelect={() => handleThemeColorChange(color.value)}
+                >
+                  <div class="theme-color-indicator" style="background: {color.preview}"></div>
+                  <span>{color.label}</span>
+                  {#if themeStore.color === color.value}
+                    <Check size={16} class="ml-auto" />
+                  {/if}
+                </DropdownMenu.Item>
+              {/each}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
       </div>
     </div>
 
@@ -1864,6 +1923,138 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    /* ========================================================================
+       THEME BUTTON & DROPDOWN
+       ======================================================================== */
+
+    .theme-button-container {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .theme-button-main {
+      /* Inherits from action-button-floating */
+      /* Size - match edit-lists-button width */
+      width: auto;
+      gap: var(--space-2);
+      padding: 0 var(--space-4);
+
+      /* Split button styling */
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: none;
+    }
+
+    /* Arrow button - targets shadcn Trigger */
+    .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
+      /* Reset */
+      all: unset;
+      box-sizing: border-box;
+
+      /* Layout */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      /* Size */
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0;
+
+      /* Style - matches action-button-floating */
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-top-right-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left: 1px solid var(--border-subtle);
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+
+      /* Color */
+      color: var(--text-secondary);
+
+      /* Transition */
+      transition: color var(--transition-fast),
+                  background-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  transform var(--transition-fast);
+    }
+
+    .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled)) {
+      color: var(--text-primary);
+      background-color: var(--bg-hover);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-1px);
+    }
+
+    .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
+      background-color: var(--bg-tertiary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(0);
+    }
+
+    :global(.theme-dropdown-content) {
+      min-width: 200px;
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-xl);
+      padding: var(--space-2);
+      z-index: 110;
+    }
+
+    :global(.theme-dropdown-header) {
+      padding: var(--space-2) var(--space-3);
+      margin-bottom: var(--space-1);
+    }
+
+    :global(.theme-dropdown-title) {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    :global(.theme-dropdown-item) {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    :global(.theme-dropdown-item:hover) {
+      background-color: var(--bg-hover);
+    }
+
+    :global(.theme-dropdown-separator) {
+      height: 1px;
+      background-color: var(--border-subtle);
+      margin: var(--space-1) 0;
+    }
+
+    :global(.theme-color-indicator) {
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--border-default);
+      flex-shrink: 0;
+    }
   }
 
   /* ============================================================================
@@ -1889,8 +2080,11 @@
     padding: var(--space-8) var(--space-10);
     min-width: 280px;
 
-    /* Style */
-    background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+    /* Style - Uses theme color */
+    background: linear-gradient(135deg,
+      oklch(from var(--primary) calc(l * 0.95) c h) 0%,
+      oklch(from var(--primary) calc(l * 1.10) c h) 100%
+    );
     border: 3px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--radius-xl);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
