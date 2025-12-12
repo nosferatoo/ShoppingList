@@ -1,0 +1,619 @@
+<script lang="ts">
+  import { swipeComposition as swipe } from 'svelte-gestures';
+  import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
+  import Header from '$lib/components/Header.svelte';
+  import ListCard from '$lib/components/ListCard.svelte';
+  import Settings from '$lib/components/Settings.svelte';
+  import SwipeHint from '$lib/components/SwipeHint.svelte';
+  import EditItemDialog from '$lib/components/EditItemDialog.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious
+  } from '$lib/components/ui/carousel';
+  import type { ListWithItems, Item } from '$lib/types';
+
+  // Props
+  interface Props {
+    data: {
+      supabase: import('@supabase/supabase-js').SupabaseClient;
+      lists: ListWithItems[];
+    };
+  }
+
+  let { data }: Props = $props();
+
+  // State
+  let currentListIndex = $state(0);
+  let isSettingsOpen = $state(false);
+  let listsData = $state<ListWithItems[]>(data.lists);
+  let showSwipeHint = $state(false);
+  let editingItem = $state<Item | null>(null);
+  let editingItemListName = $state<string>('');
+  let deletingItemId = $state<number | null>(null);
+  let deletingItemName = $state<string>('');
+  let deletingItemListName = $state<string>('');
+
+  // Check if user has seen swipe hint before
+  const SWIPE_HINT_KEY = 'swipe-hint-seen';
+
+  $effect(() => {
+    if (browser && listsData.length > 1) {
+      const hasSeenHint = localStorage.getItem(SWIPE_HINT_KEY);
+      if (!hasSeenHint) {
+        // Show hint after a short delay
+        const timeout = setTimeout(() => {
+          showSwipeHint = true;
+        }, 800);
+        return () => clearTimeout(timeout);
+      }
+    }
+  });
+
+  // Derived
+  let currentList = $derived(listsData[currentListIndex]);
+  let hasMultipleLists = $derived(listsData.length > 1);
+
+  // Handle swipe navigation (mobile)
+  function handleSwipe(event: CustomEvent) {
+    const direction = event.detail.direction;
+
+    // Dismiss swipe hint on first swipe
+    if (showSwipeHint) {
+      handleDismissSwipeHint();
+    }
+
+    if (direction === 'left' && currentListIndex < listsData.length - 1) {
+      // Swipe left = next list
+      currentListIndex++;
+    } else if (direction === 'right' && currentListIndex > 0) {
+      // Swipe right = previous list
+      currentListIndex--;
+    }
+  }
+
+  // Dismiss swipe hint
+  function handleDismissSwipeHint() {
+    showSwipeHint = false;
+    if (browser) {
+      localStorage.setItem(SWIPE_HINT_KEY, 'true');
+    }
+  }
+
+  // Handle settings click
+  function handleSettingsClick() {
+    isSettingsOpen = true;
+  }
+
+  // Handle settings close
+  function handleSettingsClose() {
+    isSettingsOpen = false;
+  }
+
+  // Item actions
+  async function handleAddItem(listId: number, text: string) {
+    try {
+      const { data: newItem, error } = await data.supabase
+        .from('items')
+        .insert({
+          list_id: listId,
+          text: text.trim(),
+          is_checked: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding item:', error);
+        throw error;
+      }
+
+      // Update local state
+      listsData = listsData.map(list => {
+        if (list.list.id === listId) {
+          return {
+            ...list,
+            items: [...list.items, newItem]
+          };
+        }
+        return list;
+      });
+    } catch (err) {
+      console.error('Failed to add item:', err);
+      throw err;
+    }
+  }
+
+  async function handleToggleItem(itemId: number) {
+    try {
+      // Find the item to get its current state
+      let currentItem: Item | undefined;
+      for (const list of listsData) {
+        const item = list.items.find(i => i.id === itemId);
+        if (item) {
+          currentItem = item;
+          break;
+        }
+      }
+
+      if (!currentItem) return;
+
+      const { error } = await data.supabase
+        .from('items')
+        .update({
+          is_checked: !currentItem.is_checked,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error toggling item:', error);
+        throw error;
+      }
+
+      // Update local state
+      listsData = listsData.map(list => ({
+        ...list,
+        items: list.items.map(item =>
+          item.id === itemId
+            ? { ...item, is_checked: !item.is_checked, updated_at: new Date().toISOString() }
+            : item
+        )
+      }));
+    } catch (err) {
+      console.error('Failed to toggle item:', err);
+    }
+  }
+
+  async function handleEditItem(itemId: number) {
+    // Find the item to edit
+    for (const list of listsData) {
+      const item = list.items.find(i => i.id === itemId);
+      if (item) {
+        editingItem = item;
+        editingItemListName = list.list.title;
+        break;
+      }
+    }
+  }
+
+  async function handleSaveEdit(itemId: number, newText: string) {
+    try {
+      const { error } = await data.supabase
+        .from('items')
+        .update({
+          text: newText,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error updating item:', error);
+        throw error;
+      }
+
+      // Update local state
+      listsData = listsData.map(list => ({
+        ...list,
+        items: list.items.map(item =>
+          item.id === itemId
+            ? { ...item, text: newText, updated_at: new Date().toISOString() }
+            : item
+        )
+      }));
+    } catch (err) {
+      console.error('Failed to update item:', err);
+    }
+  }
+
+  function handleCloseEditDialog() {
+    editingItem = null;
+    editingItemListName = '';
+  }
+
+  function handleDeleteItem(itemId: number) {
+    // Find the item to get its name and list
+    for (const list of listsData) {
+      const item = list.items.find(i => i.id === itemId);
+      if (item) {
+        deletingItemId = itemId;
+        deletingItemName = item.text;
+        deletingItemListName = list.list.title;
+        break;
+      }
+    }
+  }
+
+  async function confirmDeleteItem() {
+    if (deletingItemId === null) return;
+
+    try {
+      const { error } = await data.supabase
+        .from('items')
+        .update({
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', deletingItemId);
+
+      if (error) {
+        console.error('Error deleting item:', error);
+        throw error;
+      }
+
+      // Update local state
+      listsData = listsData.map(list => ({
+        ...list,
+        items: list.items.filter(item => item.id !== deletingItemId)
+      }));
+    } catch (err) {
+      console.error('Failed to delete item:', err);
+    } finally {
+      deletingItemId = null;
+      deletingItemName = '';
+      deletingItemListName = '';
+    }
+  }
+
+  function cancelDeleteItem() {
+    deletingItemId = null;
+    deletingItemName = '';
+    deletingItemListName = '';
+  }
+
+  // Navigate to list index
+  function navigateToList(index: number) {
+    currentListIndex = index;
+  }
+</script>
+
+<svelte:head>
+  <title>Lists</title>
+</svelte:head>
+
+<div class="app-container">
+  <!-- Header -->
+  <Header
+    title={currentList?.list.title || 'Lists'}
+    onSettingsClick={handleSettingsClick}
+  />
+
+  <!-- Main content -->
+  <main class="main-content">
+    {#if listsData.length === 0}
+      <!-- Empty state -->
+      <div class="empty-state">
+        <p class="empty-text">No lists yet</p>
+        <p class="empty-subtext">Create a list to get started</p>
+      </div>
+    {:else}
+      <!-- Mobile: Swipeable single list view -->
+      <div class="mobile-view">
+        <div
+          class="swipe-container"
+          use:swipe={{ timeframe: 300, minSwipeDistance: 60, touchAction: 'pan-y' }}
+          onswipe={handleSwipe}
+        >
+          <div
+            class="lists-wrapper"
+            style="transform: translateX(-{currentListIndex * 100}%)"
+          >
+            {#each listsData as listData (listData.list.id)}
+              <div class="list-slide">
+                <ListCard
+                  list={listData.list}
+                  items={listData.items}
+                  onAddItem={handleAddItem}
+                  onToggleItem={handleToggleItem}
+                  onEditItem={handleEditItem}
+                  onDeleteItem={handleDeleteItem}
+                />
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Pagination dots -->
+        {#if hasMultipleLists}
+          <div class="pagination-dots">
+            {#each listsData as _, index}
+              <button
+                class="dot"
+                class:active={index === currentListIndex}
+                onclick={() => navigateToList(index)}
+                aria-label="View {listsData[index].list.title}"
+              ></button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <!-- Desktop: Carousel of lists -->
+      <div class="desktop-view">
+        <div class="carousel-wrapper">
+          <Carousel
+            opts={{
+              align: 'start',
+              loop: false,
+              slidesToScroll: 1,
+              containScroll: 'trimSnaps',
+              skipSnaps: false,
+              dragFree: false
+            }}
+            class="carousel-container"
+          >
+            <CarouselContent class="carousel-content-wrapper">
+              {#each listsData as listData (listData.list.id)}
+                <CarouselItem class="carousel-item-wrapper">
+                  <ListCard
+                    list={listData.list}
+                    items={listData.items}
+                    onAddItem={handleAddItem}
+                    onToggleItem={handleToggleItem}
+                    onEditItem={handleEditItem}
+                    onDeleteItem={handleDeleteItem}
+                  />
+                </CarouselItem>
+              {/each}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        </div>
+      </div>
+    {/if}
+  </main>
+
+  <!-- Settings Panel -->
+  <Settings isOpen={isSettingsOpen} onClose={handleSettingsClose} />
+
+  <!-- Edit Item Dialog -->
+  <EditItemDialog
+    item={editingItem}
+    listName={editingItemListName}
+    isOpen={editingItem !== null}
+    onSave={handleSaveEdit}
+    onClose={handleCloseEditDialog}
+  />
+
+  <!-- Delete Confirmation Dialog -->
+  <ConfirmDialog
+    isOpen={deletingItemId !== null}
+    title={deletingItemListName ? `Delete Item - ${deletingItemListName}` : 'Delete Item'}
+    message={deletingItemName ? `Are you sure you want to delete "${deletingItemName}"? This action cannot be undone.` : 'Are you sure you want to delete this item? This action cannot be undone.'}
+    confirmText="Delete"
+    cancelText="Cancel"
+    variant="danger"
+    onConfirm={confirmDeleteItem}
+    onCancel={cancelDeleteItem}
+  />
+
+  <!-- Swipe Hint (mobile only, first use) -->
+  <SwipeHint isVisible={showSwipeHint} onDismiss={handleDismissSwipeHint} />
+</div>
+
+<style>
+  .app-container {
+    /* Layout */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    /* Background */
+    background-color: var(--bg-primary);
+  }
+
+  .main-content {
+    /* Layout */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    /* Spacing - account for fixed header */
+    margin-top: 56px;
+  }
+
+  @media (min-width: 1024px) {
+    .main-content {
+      margin-top: 64px;
+    }
+  }
+
+  /* Empty state */
+  .empty-state {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: var(--space-2);
+
+    /* Spacing */
+    padding: var(--space-8);
+  }
+
+  .empty-text {
+    /* Typography */
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+    font-weight: var(--font-medium);
+
+    /* Reset */
+    margin: 0;
+  }
+
+  .empty-subtext {
+    /* Typography */
+    font-size: var(--text-base);
+    color: var(--text-muted);
+
+    /* Reset */
+    margin: 0;
+  }
+
+  /* ============================================================================
+     MOBILE VIEW - Swipeable lists
+     ============================================================================ */
+
+  .mobile-view {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    /* Show only on mobile */
+    display: flex;
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-view {
+      display: none;
+    }
+  }
+
+  .swipe-container {
+    /* Layout */
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+
+    /* Enable touch scrolling */
+    touch-action: pan-y;
+  }
+
+  .lists-wrapper {
+    /* Layout */
+    display: flex;
+    height: 100%;
+
+    /* Smooth transitions */
+    transition: transform var(--transition-normal);
+    will-change: transform;
+  }
+
+  .list-slide {
+    /* Layout */
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* Smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Pagination dots */
+  .pagination-dots {
+    /* Position */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+
+    /* Spacing */
+    padding: var(--space-4);
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+
+    /* Background for visibility */
+    background: linear-gradient(
+      to top,
+      var(--bg-primary) 70%,
+      transparent 100%
+    );
+  }
+
+  .dot {
+    /* Size */
+    width: 8px;
+    height: 8px;
+
+    /* Style */
+    border-radius: var(--radius-full);
+    background-color: var(--text-muted);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+
+    /* Transition */
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+  }
+
+  .dot:hover {
+    background-color: var(--text-secondary);
+    transform: scale(1.2);
+  }
+
+  .dot.active {
+    background-color: var(--accent-primary);
+    transform: scale(1.3);
+  }
+
+  .dot:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* ============================================================================
+     DESKTOP VIEW - Grid layout
+     ============================================================================ */
+
+  .desktop-view {
+    /* Hide on mobile */
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .desktop-view {
+      /* Layout */
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+
+      /* Spacing */
+      padding: var(--space-6);
+      overflow: hidden;
+    }
+
+    .carousel-wrapper {
+      width: 100%;
+      position: relative;
+    }
+
+    /* Carousel container */
+    :global(.carousel-container) {
+      width: 100%;
+    }
+
+    /* Carousel viewport - inset to make room for arrows */
+    :global(.carousel-viewport) {
+      margin: 0 80px;
+    }
+
+    /* Carousel content */
+    :global(.carousel-content-wrapper) {
+      gap: var(--space-6);
+      justify-content: center;
+    }
+
+    /* Each carousel item - use natural width from ListCard */
+    :global(.carousel-item-wrapper) {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 0;
+    }
+  }
+</style>
