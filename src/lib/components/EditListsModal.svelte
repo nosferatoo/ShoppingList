@@ -442,7 +442,7 @@
         <Plus size={18} />
         <span>Add new list</span>
       </Button>
-      <Button variant="outline" onclick={onClose}>
+      <Button variant="outline" size="sm" onclick={onClose}>
         Cancel
       </Button>
     </DialogFooter>

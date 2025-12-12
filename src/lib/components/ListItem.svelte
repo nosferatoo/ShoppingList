@@ -225,7 +225,7 @@
   .item-content {
     /* Layout */
     display: flex;
-    align-items: start;
+    align-items: center;
     gap: var(--space-3);
 
     /* Size */
@@ -252,7 +252,6 @@
     flex-shrink: 0;
     width: 24px !important;
     height: 24px !important;
-    margin-top: 2px !important;
   }
 
   /* Increase checkmark icon size */
@@ -351,7 +350,7 @@
   :global(.action-button-edit) {
     /* Style */
     background-color: var(--bg-secondary) !important;
-    color: var(--blue-medium) !important; /* Blue tint on mobile */
+    color: var(--text-secondary) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-md) !important;
 
@@ -381,7 +380,7 @@
   :global(.action-button-delete) {
     /* Style */
     background-color: var(--bg-secondary) !important;
-    color: var(--error) !important; /* Red tint on mobile */
+    color: var(--text-secondary) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-md) !important;
 
