@@ -692,27 +692,28 @@
     <div class="desktop-floating-controls">
       <!-- Floating controls - Top Left (User Info & Dropdown) -->
       <div class="floating-controls-left">
-        <div class="user-info-floating">
-          <div class="user-avatar-floating">
-            <User size={16} />
-          </div>
-          <DropdownMenu.Root bind:open={isUserDropdownOpen}>
+        <DropdownMenu.Root bind:open={isUserDropdownOpen}>
+          <div class="user-info-floating">
+            <div class="user-avatar-floating">
+              <User size={16} />
+            </div>
             <DropdownMenu.Trigger
               type="button"
               class="user-details-floating"
               aria-label="User menu"
+              aria-expanded={isUserDropdownOpen}
             >
               <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
               <ChevronDown size={14} class="dropdown-chevron" />
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="start" class="w-48">
-              <DropdownMenu.Item variant="destructive" onclick={handleLogout}>
-                <LogOut size={16} />
-                <span>Log out</span>
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </div>
+          </div>
+          <DropdownMenu.Content align="start" class="w-48">
+            <DropdownMenu.Item variant="destructive" onclick={handleLogout}>
+              <LogOut size={16} />
+              <span>Log out</span>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
 
       <!-- Floating controls - Top Right (Sync, Edit Lists) -->
@@ -1620,6 +1621,18 @@
     .user-details-floating[aria-expanded="true"] :global(.dropdown-chevron) {
       transform: rotate(180deg);
       color: var(--accent-primary);
+    }
+
+    /* Override shadcn DropdownMenu.Trigger defaults for custom user button */
+    :global([data-slot="dropdown-menu-trigger"].user-details-floating) {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: var(--space-2) !important;
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      min-width: 0 !important;
     }
 
     /* User Dropdown Menu */
