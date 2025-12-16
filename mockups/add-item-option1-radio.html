@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Option 1: Radio Buttons</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 480px;
+      padding: 24px;
+    }
+
+    .modal-header {
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #4a4a4a;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .radio-option:hover {
+      border-color: #f97316;
+      background: #fff7ed;
+    }
+
+    .radio-option input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: #f97316;
+    }
+
+    .radio-option label {
+      font-size: 15px;
+      color: #374151;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .radio-option input[type="radio"]:checked + label {
+      color: #1a1a1a;
+      font-weight: 500;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-outline {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+    }
+
+    .btn-outline:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .btn-primary {
+      background: #f97316;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #ea580c;
+      box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+    }
+
+    .option-badge {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #1a1a1a;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="option-badge">OPTION 1: Radio Buttons</div>
+
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Add item</h2>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Add item</label>
+      <input type="text" class="form-input" value="Tomatoes" placeholder="Enter item name">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">To which shopping list</label>
+      <div class="radio-group">
+        <div class="radio-option">
+          <input type="radio" name="list" id="list1" checked>
+          <label for="list1">Groceries</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" name="list" id="list2">
+          <label for="list2">Farmer's Market</label>
+        </div>
+        <div class="radio-option">
+          <input type="radio" name="list" id="list3">
+          <label for="list3">Weekly Shopping</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline">Cancel</button>
+      <button class="btn btn-primary">Add</button>
+    </div>
+  </div>
+</body>
+</html>

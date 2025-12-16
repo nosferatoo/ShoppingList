@@ -294,6 +294,17 @@
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
+
+  /* Allow text selection in input fields and editable content */
+  input,
+  textarea,
+  [contenteditable="true"],
+  [contenteditable="plaintext-only"] {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+  }
 }
 
 /* ============================================================================

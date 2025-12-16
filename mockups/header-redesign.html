@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Header Redesign - Before & After</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #121212;
+      color: #e5e5e5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      margin: 30px 0 15px 0;
+      font-size: 18px;
+      color: #f97316;
+    }
+
+    .phone {
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      height: 64px;
+      background: #262626;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      position: relative;
+    }
+
+    /* BEFORE styles */
+    .before .header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      position: relative;
+    }
+
+    .before .header-left::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .before .list-icon {
+      width: 20px;
+      height: 20px;
+      color: #999;
+    }
+
+    .before .title-section {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .before .title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e5e5e5;
+    }
+
+    .before .count {
+      font-size: 14px;
+      color: #737373;
+    }
+
+    .before .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      position: relative;
+    }
+
+    .before .header-actions::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid #eab308;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .before .toggle {
+      background: #404040;
+      border: 1px solid #525252;
+      border-radius: 6px;
+      padding: 2px;
+      display: flex;
+      gap: 2px;
+    }
+
+    .before .toggle-btn {
+      width: 36px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      color: #737373;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .before .toggle-btn.active {
+      background: #f97316;
+      color: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .before .settings-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* AFTER styles */
+    .after .header-left {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .after .toggle {
+      background: #404040;
+      border: 1px solid #525252;
+      border-radius: 6px;
+      padding: 2px;
+      display: flex;
+      gap: 2px;
+      position: relative;
+    }
+
+    .after .toggle::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid #22c55e;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .after .toggle-btn {
+      min-width: 52px;
+      height: 32px;
+      padding: 0 12px;
+      background: transparent;
+      border: none;
+      color: #737373;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .after .toggle-btn.active {
+      background: #f97316;
+      color: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .after .settings-btn {
+      width: 40px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .after .settings-btn::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 2px solid #eab308;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    .list-card {
+      padding: 16px;
+      border-bottom: 1px solid #333;
+      position: relative;
+    }
+
+    .before .list-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px solid #22c55e;
+      border-radius: 0;
+      pointer-events: none;
+    }
+
+    .list-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .list-card-icon {
+      width: 20px;
+      height: 20px;
+      color: #999;
+    }
+
+    .list-card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e5e5e5;
+    }
+
+    .list-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #737373;
+    }
+
+    .shared-badge {
+      background: #404040;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* SVG Icons */
+    .icon {
+      width: 100%;
+      height: 100%;
+    }
+
+    .legend {
+      margin-top: 20px;
+      padding: 16px;
+      background: #262626;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .legend-box {
+      width: 24px;
+      height: 24px;
+      border: 2px solid;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .red { border-color: #ef4444; }
+    .yellow { border-color: #eab308; }
+    .green { border-color: #22c55e; }
+
+    .notes {
+      margin-top: 20px;
+      padding: 16px;
+      background: #1e3a8a;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .notes h3 {
+      color: #93c5fd;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .notes ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .notes li {
+      margin: 6px 0;
+      padding-left: 20px;
+      position: relative;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+
+    .notes li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #60a5fa;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="text-align: center; color: #f97316; margin-bottom: 30px;">Header Redesign Proposal</h1>
+
+    <!-- BEFORE -->
+    <h2>BEFORE (Current)</h2>
+    <div class="phone before">
+      <div class="header">
+        <div class="header-left">
+          <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <div class="title-section">
+            <div class="title">Spar</div>
+            <div class="count">0 of 36 completed</div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="toggle">
+            <button class="toggle-btn active">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+            </button>
+            <button class="toggle-btn">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </button>
+          </div>
+          <button class="settings-btn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6M5.4 5.4l4.2 4.2m4.8 4.8l4.2 4.2M1 12h6m6 0h6M5.4 18.6l4.2-4.2m4.8-4.8l4.2-4.2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="list-card">
+        <div class="list-card-header">
+          <svg class="list-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <div class="list-card-title">Spar</div>
+        </div>
+        <div class="list-card-meta">
+          <span>29 of 36 completed</span>
+          <span class="shared-badge">Shared with you</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend for Before -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-box red"></div>
+        <div><strong>Red:</strong> Duplicate info - will be removed</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box yellow"></div>
+        <div><strong>Yellow:</strong> Toggle - will be moved left & expanded</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box green"></div>
+        <div><strong>Green:</strong> List card with all info (kept as-is)</div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <h2>AFTER (Proposed)</h2>
+    <div class="phone after">
+      <div class="header">
+        <div class="header-left">
+          <div class="toggle">
+            <button class="toggle-btn active">
+              <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              Lists
+            </button>
+            <button class="toggle-btn">
+              <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              Master
+            </button>
+            <button class="toggle-btn">
+              <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/>
+                <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/>
+                <path d="m2.1 21.8 6.4-6.3"/>
+                <path d="m19 5-7 7"/>
+              </svg>
+              Meals
+            </button>
+          </div>
+        </div>
+        <button class="settings-btn">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.4 5.4l4.2 4.2m4.8 4.8l4.2 4.2M1 12h6m6 0h6M5.4 18.6l4.2-4.2m4.8-4.8l4.2-4.2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="list-card">
+        <div class="list-card-header">
+          <svg class="list-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <div class="list-card-title">Spar</div>
+        </div>
+        <div class="list-card-meta">
+          <span>29 of 36 completed</span>
+          <span class="shared-badge">Shared with you</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend for After -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-box green"></div>
+        <div><strong>Green:</strong> New wider toggle on left side</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box yellow"></div>
+        <div><strong>Yellow:</strong> Settings button (stays on right)</div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes">
+      <h3>Key Changes:</h3>
+      <ul>
+        <li>Removed duplicate list info from header (icon, title, counter)</li>
+        <li>Moved toggle to left side of header</li>
+        <li>Expanded toggle to 3 buttons with icons + labels</li>
+        <li>Added "Meals" option to open meal planner</li>
+        <li>Settings button stays on the right</li>
+        <li>All list info remains visible in the green card below</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

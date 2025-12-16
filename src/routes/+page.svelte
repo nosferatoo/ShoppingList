@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown, Palette } from 'lucide-svelte';
+  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown, Palette, UtensilsCrossed } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import MasterList from '$lib/components/MasterList.svelte';
@@ -10,6 +10,10 @@
   import EditItemDialog from '$lib/components/EditItemDialog.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import EditListsModal from '$lib/components/EditListsModal.svelte';
+  import DishesModal from '$lib/components/DishesModal.svelte';
+  import MealPlannerModal from '$lib/components/MealPlannerModal.svelte';
+  import MealPlannerContent from '$lib/components/MealPlannerContent.svelte';
+  import MenuConfirmationDialog from '$lib/components/MenuConfirmationDialog.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
   import { toastStore } from '$lib/stores/toast.svelte';
@@ -24,7 +28,7 @@
     CarouselPrevious
   } from '$lib/components/ui/carousel';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-  import type { ListWithItems, Item } from '$lib/types';
+  import type { ListWithItems, Item, MenuWithDetails } from '$lib/types';
 
   // Props
   interface Props {
@@ -42,6 +46,11 @@
   let carouselApi = $state<any>(null);
   let isSettingsOpen = $state(false);
   let isEditListsModalOpen = $state(false);
+  let isDishesModalOpen = $state(false);
+  let isMealPlannerModalOpen = $state(false);
+  let isMenuConfirmationDialogOpen = $state(false);
+  let isMealsDropdownOpen = $state(false);
+  let unconfirmedMenus = $state<MenuWithDetails[]>([]);
   let isUserDropdownOpen = $state(false);
   let isThemeDropdownOpen = $state(false);
   let listsData = $state<ListWithItems[]>(data.lists);
@@ -52,7 +61,7 @@
   let deletingItemName = $state<string>('');
   let deletingItemListName = $state<string>('');
   let isLandscape = $state(false);
-  let masterMode = $state(false);
+  let viewMode = $state<'lists' | 'master' | 'meals'>('lists');
 
   // Manual swipe detection
   let touchStartX = $state(0);
@@ -193,9 +202,14 @@
     isSettingsOpen = false;
   }
 
-  // Handle master mode toggle
-  function handleToggleMasterMode(enabled: boolean) {
-    masterMode = enabled;
+  // Handle view mode change
+  function handleViewModeChange(mode: 'lists' | 'master' | 'meals') {
+    viewMode = mode;
+
+    // Close meal planner modal if it's open when switching to meals view on mobile
+    if (mode === 'meals') {
+      isMealPlannerModalOpen = false;
+    }
   }
 
   // Item actions
@@ -250,12 +264,19 @@
 
       const newCheckedState = !currentItem.is_checked;
 
+      const updateData: any = {
+        is_checked: newCheckedState,
+        updated_at: new Date().toISOString()
+      };
+
+      // Reset quantity when item is checked (bought)
+      if (newCheckedState) {
+        updateData.quantity = null;
+      }
+
       const { error } = await data.supabase
         .from('items')
-        .update({
-          is_checked: newCheckedState,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', itemId);
 
       if (error) {
@@ -455,6 +476,77 @@
     listsData = updatedLists;
   }
 
+  // ============================================================================
+  // MEAL PLANNING HANDLERS
+  // ============================================================================
+
+  function handleDishesModalOpen() {
+    isDishesModalOpen = true;
+    isMealsDropdownOpen = false;
+  }
+
+  function handleDishesModalClose() {
+    isDishesModalOpen = false;
+  }
+
+  function handleMealPlannerModalOpen() {
+    isMealPlannerModalOpen = true;
+    isMealsDropdownOpen = false;
+  }
+
+  function handleMealPlannerModalClose() {
+    isMealPlannerModalOpen = false;
+  }
+
+  async function handleConfirmMenuClick() {
+    // Load unconfirmed menus
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 10);
+
+      const formatDateISO = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const { data: menusData, error } = await data.supabase.rpc('get_menus_with_dishes', {
+        p_start_date: formatDateISO(today),
+        p_end_date: formatDateISO(endDate)
+      });
+
+      if (error) {
+        console.error('Error loading menus for confirmation:', error);
+        throw error;
+      }
+
+      unconfirmedMenus = (menusData || []).filter((m: MenuWithDetails) => !m.menu.is_confirmed && m.menu.dish_id !== null);
+
+      if (unconfirmedMenus.length > 0) {
+        isMealPlannerModalOpen = false;
+        isMenuConfirmationDialogOpen = true;
+      }
+    } catch (err) {
+      console.error('Failed to load menus for confirmation:', err);
+    }
+  }
+
+  function handleMenuConfirmationDialogClose() {
+    isMenuConfirmationDialogOpen = false;
+    unconfirmedMenus = [];
+  }
+
+  async function handleMenuConfirmed() {
+    isMenuConfirmationDialogOpen = false;
+    unconfirmedMenus = [];
+
+    // Reload lists to show updated quantities
+    await handleSync();
+  }
+
   // Handle sync button click
   async function handleSync() {
     if (!syncStore.isOnline || syncStore.isSyncing) return;
@@ -598,14 +690,14 @@
 <div class="app-container">
   <!-- Header -->
   <Header
-    title={masterMode ? 'All Lists' : (currentList?.list.title || 'Lists')}
-    listType={masterMode ? 'shopping' : currentList?.list.type}
+    title={viewMode === 'master' ? 'All Lists' : (currentList?.list.title || 'Lists')}
+    listType={viewMode === 'master' ? 'shopping' : currentList?.list.type}
     isShared={false}
-    totalCount={masterMode ? masterListTotalCount : currentListTotalCount}
+    totalCount={viewMode === 'master' ? masterListTotalCount : currentListTotalCount}
     checkedCount={0}
     onSettingsClick={handleSettingsClick}
-    isMasterMode={masterMode}
-    onToggleMasterMode={handleToggleMasterMode}
+    {viewMode}
+    onViewModeChange={handleViewModeChange}
   />
 
   <!-- Main content -->
@@ -724,6 +816,41 @@
           <span class="button-text">Edit lists</span>
         </button>
 
+        <!-- Meals Button (Desktop only, Split Button with Dropdown) -->
+        <div class="meals-button-container hidden lg:block">
+          <!-- Main Meals Button -->
+          <button
+            type="button"
+            class="action-button-floating meals-button-main"
+            onclick={handleMealPlannerModalOpen}
+            aria-label="Meal planner"
+            title="Meal planner"
+          >
+            <UtensilsCrossed size={18} />
+            <span class="button-text">Meals</span>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <DropdownMenu.Root bind:open={isMealsDropdownOpen}>
+            <DropdownMenu.Trigger
+              type="button"
+              class="action-button-floating dropdown-trigger"
+              aria-label="Meals options"
+              title="Meals options"
+            >
+              <ChevronDown size={14} />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end" class="w-48">
+              <DropdownMenu.Item onclick={handleMealPlannerModalOpen}>
+                <span>Meal Planner</span>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item onclick={handleDishesModalOpen}>
+                <span>Dishes</span>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
+
         <!-- Theme Button with Dropdown -->
         <div class="theme-button-container">
           <!-- Main Theme Button -->
@@ -776,14 +903,24 @@
         <p class="empty-subtext">Create a list to get started</p>
       </div>
     {:else}
-      <!-- Mobile: Swipeable single list view -->
+      <!-- Mobile: Three view modes -->
       <div class="mobile-view">
-        {#if masterMode}
+        {#if viewMode === 'master'}
           <!-- Master list view - all unchecked items from all shopping lists -->
           <MasterList
             groups={masterListData}
             onToggleItem={handleToggleItem}
           />
+        {:else if viewMode === 'meals'}
+          <!-- Meals view - inline meal planner -->
+          <div class="mobile-meals-view">
+            <MealPlannerContent
+              supabase={data.supabase}
+              userId={authStore.userId || ''}
+              onConfirmMenu={handleConfirmMenuClick}
+              showCloseButton={false}
+            />
+          </div>
         {:else}
           <!-- Normal list view - swipeable individual lists -->
           <div
@@ -929,6 +1066,33 @@
     initialLists={listsData}
     onListsUpdated={handleListsUpdated}
   />
+
+  <!-- Dishes Modal -->
+  <DishesModal
+    isOpen={isDishesModalOpen}
+    onClose={handleDishesModalClose}
+    supabase={data.supabase}
+    userId={authStore.userId || ''}
+    lists={listsData}
+  />
+
+  <!-- Meal Planner Modal -->
+  <MealPlannerModal
+    isOpen={isMealPlannerModalOpen}
+    onClose={handleMealPlannerModalClose}
+    supabase={data.supabase}
+    userId={authStore.userId || ''}
+    onConfirmMenu={handleConfirmMenuClick}
+  />
+
+  <!-- Menu Confirmation Dialog -->
+  <MenuConfirmationDialog
+    isOpen={isMenuConfirmationDialogOpen}
+    onClose={handleMenuConfirmationDialogClose}
+    supabase={data.supabase}
+    menus={unconfirmedMenus}
+    onConfirmed={handleMenuConfirmed}
+  />
 </div>
 
 <style>
@@ -940,6 +1104,12 @@
 
     /* Background */
     background-color: var(--bg-primary);
+
+    /* Prevent text selection on desktop */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 
   .main-content {
@@ -1116,6 +1286,16 @@
     .mobile-view {
       display: none;
     }
+  }
+
+  /* Mobile meals view container */
+  .mobile-meals-view {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Critical for flex scrolling in nested containers */
+    overflow: hidden;
   }
 
   .swipe-container {
@@ -2009,6 +2189,70 @@
     }
 
     .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
+      background-color: var(--bg-tertiary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(0);
+    }
+
+    /* ------------------------------------------------------------------------
+       Meals Button Container (Split Button, Desktop only)
+       ------------------------------------------------------------------------ */
+
+    .meals-button-container {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+
+    .meals-button-main {
+      /* Inherits from action-button-floating */
+      width: auto;
+      gap: var(--space-2);
+      padding: 0 var(--space-4);
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right: none;
+    }
+
+    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-top-right-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left: 1px solid var(--border-subtle);
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      color: var(--text-secondary);
+      transition: color var(--transition-fast),
+                  background-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  transform var(--transition-fast);
+    }
+
+    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled)) {
+      color: var(--text-primary);
+      background-color: var(--bg-hover);
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-1px);
+    }
+
+    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
       background-color: var(--bg-tertiary);
       box-shadow: var(--shadow-md);
       transform: translateY(0);

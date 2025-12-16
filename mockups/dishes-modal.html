@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dishes Modal - Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --background: oklch(0.1822 0 0);
+      --foreground: oklch(0.9274 0.0178 253.3431);
+      --card: oklch(0.1822 0 0);
+      --primary: oklch(0.5939 0.1730 43.9251);
+      --secondary: oklch(0.2809 0 0);
+      --muted: oklch(0.2393 0 0);
+      --muted-foreground: oklch(0.6509 0.0150 253.8275);
+      --accent: oklch(0.3132 0 0);
+      --destructive: oklch(0.5768 0.2204 22.0859);
+      --border: oklch(0.2809 0 0);
+      --border-subtle: rgba(58, 58, 58, 1);
+      --bg-hover: rgba(47, 47, 47, 1);
+      --input: oklch(0.3132 0 0);
+      --ring: oklch(0.5939 0.1730 43.9251);
+      --radius: 0.5rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --text-sm: 0.875rem;
+      --text-base: 1rem;
+      --text-xl: 1.25rem;
+      --transition-fast: 150ms;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      padding: var(--space-6);
+    }
+
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    .dialog-content {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 50;
+      transform: translate(-50%, -50%);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+      max-height: 85vh;
+      width: calc(100% - 2rem);
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dialog-header {
+      padding: var(--space-6);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .dialog-title {
+      font-size: var(--text-xl);
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* 3-column layout */
+    .dialog-body {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .column:last-child {
+      border-right: none;
+    }
+
+    /* Column headers - all in ONE LINE */
+    .column-headers {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr;
+      gap: 0;
+      background: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .column-header {
+      padding: var(--space-3) var(--space-5);
+      border-right: 1px solid var(--border);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+
+    .column-header:last-child {
+      border-right: none;
+    }
+
+    /* Add dish input - matches ListCard pattern */
+    .add-input-container {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .input-with-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .add-input {
+      flex: 1;
+      height: 44px;
+      padding: 0 48px 0 var(--space-3);
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      color: var(--foreground);
+      font-size: var(--text-sm);
+      font-family: 'Inter', sans-serif;
+      transition: border-color var(--transition-fast);
+    }
+
+    .add-input:focus {
+      outline: none;
+      border-color: var(--ring);
+      box-shadow: 0 0 0 2px rgba(255, 136, 77, 0.2);
+    }
+
+    .add-input::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    .add-button {
+      position: absolute;
+      right: 4px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      border-radius: calc(var(--radius) - 4px);
+      transition: all var(--transition-fast);
+    }
+
+    .add-button:hover {
+      background: var(--accent);
+      color: var(--foreground);
+    }
+
+    .column-content {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* List items - following ListItem pattern */
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      min-height: 48px;
+      transition: background-color var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .list-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .list-item.selected {
+      background: var(--accent);
+      border-color: var(--primary);
+    }
+
+    .list-item-text {
+      flex: 1;
+      font-size: var(--text-base);
+      color: var(--foreground);
+      white-space: normal;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Action buttons - following ListItem desktop pattern */
+    .list-item-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+    }
+
+    .list-item:hover .list-item-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .action-button {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--secondary);
+      border: 1px solid var(--border-subtle);
+      color: var(--muted-foreground);
+      cursor: pointer;
+      border-radius: calc(var(--radius) - 2px);
+      transition: all var(--transition-fast);
+    }
+
+    .action-button:hover {
+      transform: scale(1.05);
+    }
+
+    .action-button.edit:hover {
+      background: rgb(59, 130, 246);
+      color: #ffffff;
+      border-color: rgb(59, 130, 246);
+    }
+
+    .action-button.delete:hover {
+      background: var(--destructive);
+      color: #ffffff;
+      border-color: var(--destructive);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon-sm {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Available items - simple button on the right */
+    .available-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      min-height: 48px;
+      transition: background-color var(--transition-fast);
+    }
+
+    .available-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .available-item-text {
+      flex: 1;
+      font-size: var(--text-base);
+      color: var(--foreground);
+    }
+
+    .use-button {
+      padding: 4px 12px;
+      height: 28px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--foreground);
+      cursor: pointer;
+      border-radius: calc(var(--radius) - 4px);
+      transition: all var(--transition-fast);
+    }
+
+    .use-button:hover {
+      background: var(--accent);
+    }
+
+    .dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      padding: var(--space-5);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 var(--space-6);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border-radius: calc(var(--radius) - 2px);
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: oklch(0.1822 0 0);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: var(--accent);
+    }
+
+    /* Scrollbar */
+    .column-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .column-content::-webkit-scrollbar-track {
+      background: var(--muted);
+    }
+
+    .column-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .column-content::-webkit-scrollbar-thumb:hover {
+      background: var(--muted-foreground);
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog-backdrop"></div>
+
+  <div class="dialog-content">
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2 class="dialog-title">Dishes</h2>
+    </div>
+
+    <!-- Column headers - ALL IN ONE LINE -->
+    <div class="column-headers">
+      <div class="column-header">Your Dishes</div>
+      <div class="column-header">Ingredients</div>
+      <div class="column-header">Available Items</div>
+    </div>
+
+    <!-- 3-column body -->
+    <div class="dialog-body">
+      <!-- Column 1: Your Dishes -->
+      <div class="column">
+        <!-- Add dish input - matches ListCard "Add item" pattern -->
+        <div class="add-input-container">
+          <div class="input-with-button">
+            <input type="text" class="add-input" placeholder="Add dish..." />
+            <button class="add-button">
+              <svg class="icon" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="column-content">
+          <!-- Alphabetically sorted dishes -->
+          <div class="list-item">
+            <span class="list-item-text">Chicken Soup</span>
+            <div class="list-item-actions">
+              <button class="action-button edit">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Grilled Salmon</span>
+            <div class="list-item-actions">
+              <button class="action-button edit">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item selected">
+            <span class="list-item-text">Pasta Carbonara</span>
+            <div class="list-item-actions">
+              <button class="action-button edit">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Pizza Margherita</span>
+            <div class="list-item-actions">
+              <button class="action-button edit">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Tacos</span>
+            <div class="list-item-actions">
+              <button class="action-button edit">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2: Ingredients for selected dish -->
+      <div class="column">
+        <div class="column-content">
+          <!-- Alphabetically sorted ingredients -->
+          <div class="list-item">
+            <span class="list-item-text">Bacon</span>
+            <div class="list-item-actions">
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Eggs</span>
+            <div class="list-item-actions">
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Parmesan Cheese</span>
+            <div class="list-item-actions">
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="list-item">
+            <span class="list-item-text">Spaghetti</span>
+            <div class="list-item-actions">
+              <button class="action-button delete">
+                <svg class="icon" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 3: Available food items (NOT grouped, alphabetically sorted) -->
+      <div class="column">
+        <div class="column-content">
+          <div class="available-item">
+            <span class="available-item-text">Bacon</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Bread</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Butter</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Carrots</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Chicken Breast</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Eggs</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Ground Beef</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Lettuce</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Milk</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Onions</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Parmesan Cheese</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Salmon Fillet</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Spaghetti</span>
+            <button class="use-button">Use</button>
+          </div>
+
+          <div class="available-item">
+            <span class="available-item-text">Tomatoes</span>
+            <button class="use-button">Use</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="dialog-footer">
+      <button class="btn btn-outline">Close</button>
+      <button class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</body>
+</html>

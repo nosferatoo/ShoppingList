@@ -2,7 +2,7 @@
   // Full-screen list management modal using shadcn Dialog
   // Full-screen on mobile, modal on desktop
 
-  import { GripVertical, ShoppingCart, CheckCircle, Trash2, Plus, Pencil } from 'lucide-svelte';
+  import { GripVertical, ShoppingCart, CheckCircle, Trash2, Plus, Pencil, List as ListIcon, UtensilsCrossed } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -42,9 +42,11 @@
   let newListTitle = $state('');
   let newListType = $state<ListType>('shopping');
   let newListIsShared = $state(false);
+  let newListIsFood = $state(false);
   let renameTitle = $state('');
   let renameType = $state<ListType>('shopping');
   let renameIsShared = $state(false);
+  let renameIsFood = $state(false);
   let isSaving = $state(false);
   let errorMessage = $state('');
 
@@ -158,6 +160,7 @@
     newListTitle = '';
     newListType = 'shopping';
     newListIsShared = false;
+    newListIsFood = false;
     errorMessage = '';
     isAddModalOpen = true;
   }
@@ -192,7 +195,8 @@
           title,
           type: newListType,
           owner_id: userId,
-          is_shared: newListIsShared
+          is_shared: newListIsShared,
+          is_food: newListIsFood
         })
         .select()
         .single();
@@ -230,6 +234,7 @@
     renameTitle = list.title;
     renameType = list.type;
     renameIsShared = list.is_shared;
+    renameIsFood = list.is_food;
     isRenameModalOpen = true;
   }
 
@@ -239,6 +244,7 @@
     renameTitle = '';
     renameType = 'shopping';
     renameIsShared = false;
+    renameIsFood = false;
   }
 
   async function handleRenameList(event: Event) {
@@ -258,6 +264,7 @@
           title,
           type: renameType,
           is_shared: renameIsShared,
+          is_food: renameIsFood,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedList.id);
@@ -275,7 +282,8 @@
               ...item.list,
               title,
               type: renameType,
-              is_shared: renameIsShared
+              is_shared: renameIsShared,
+              is_food: renameIsFood
             }
           };
         }
@@ -381,12 +389,17 @@
                     <!-- Title -->
                     <span class="overflow-hidden text-ellipsis whitespace-nowrap font-medium">{listData.list.title}</span>
 
-                    <!-- Badge (below title on mobile) -->
-                    {#if listData.list.is_shared && !isOwner(listData.list)}
-                      <Badge variant="secondary" class="w-fit text-xs lg:hidden">Shared with you</Badge>
-                    {:else if listData.list.is_shared}
-                      <Badge variant="secondary" class="w-fit text-xs lg:hidden">Shared</Badge>
-                    {/if}
+                    <!-- Badges (below title on mobile) -->
+                    <div class="flex flex-wrap gap-1 lg:hidden">
+                      {#if listData.list.is_shared && !isOwner(listData.list)}
+                        <Badge variant="secondary" class="w-fit text-xs">Shared with you</Badge>
+                      {:else if listData.list.is_shared}
+                        <Badge variant="secondary" class="w-fit text-xs">Shared</Badge>
+                      {/if}
+                      {#if listData.list.is_food}
+                        <Badge variant="secondary" class="w-fit text-xs">Food</Badge>
+                      {/if}
+                    </div>
                   </div>
 
                   <!-- Badges (inline on desktop) -->
@@ -395,6 +408,9 @@
                   {:else if listData.list.is_shared}
                     <Badge variant="secondary" class="hidden flex-shrink-0 lg:inline-flex">Shared</Badge>
                   {/if}
+                  {#if listData.list.is_food}
+                    <Badge variant="secondary" class="hidden flex-shrink-0 lg:inline-flex">Food</Badge>
+                  {/if}
                 </div>
 
                 <!-- Edit button (only for owners) -->
@@ -402,7 +418,7 @@
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    class="action-button-edit flex-shrink-0 bg-transparent text-blue-500 hover:bg-transparent hover:text-blue-600 lg:bg-muted lg:text-muted-foreground lg:opacity-0 lg:group-hover:opacity-100 lg:hover:bg-accent lg:hover:text-blue-500"
+                    class="action-button-edit flex-shrink-0 bg-transparent text-orange-500 hover:bg-transparent hover:text-orange-600 lg:bg-muted lg:text-muted-foreground lg:opacity-0 lg:group-hover:opacity-100 lg:hover:bg-accent lg:hover:text-orange-500"
                     onclick={() => openRenameModal(listData.list)}
                     aria-label="Edit {listData.list.title}"
                   >
@@ -413,7 +429,7 @@
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    class="action-button-delete flex-shrink-0 bg-transparent text-destructive hover:bg-transparent hover:text-destructive/80 lg:bg-muted lg:text-muted-foreground lg:opacity-0 lg:group-hover:opacity-100 lg:hover:bg-accent lg:hover:text-destructive"
+                    class="action-button-delete flex-shrink-0 bg-transparent text-orange-500 hover:bg-transparent hover:text-orange-600 lg:bg-muted lg:text-muted-foreground lg:opacity-0 lg:group-hover:opacity-100 lg:hover:bg-accent lg:hover:text-orange-500"
                     onclick={() => openDeleteModal(listData.list)}
                     aria-label="Delete {listData.list.title}"
                   >
@@ -432,17 +448,17 @@
     </div>
 
     <!-- Footer -->
-    <DialogFooter class="flex-shrink-0 flex-row items-center justify-between px-3 py-3 lg:px-5 lg:py-5">
+    <DialogFooter class="flex-shrink-0 !flex-row !justify-between items-center px-3 py-3 lg:px-5 lg:py-5">
       <Button
         variant="outline"
         size="sm"
-        class="gap-2"
+        class="h-9"
         onclick={openAddModal}
       >
-        <Plus size={18} />
-        <span>Add new list</span>
+        <Plus size={16} class="mr-1" />
+        Add new list
       </Button>
-      <Button variant="outline" size="sm" onclick={onClose}>
+      <Button variant="outline" size="sm" class="h-9" onclick={onClose}>
         Cancel
       </Button>
     </DialogFooter>
@@ -479,22 +495,61 @@
       <div class="flex flex-col gap-2">
         <span class="text-sm font-medium">List Type</span>
         <div class="grid grid-cols-2 gap-3">
-          <label class="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
-            <Checkbox
-              checked={newListType === 'shopping'}
-              onCheckedChange={(checked) => {
-                if (checked) newListType = 'shopping';
-              }}
-              disabled={isSaving}
-            />
-            <ShoppingCart size={18} class="flex-shrink-0 text-muted-foreground" />
-            <span class="flex-1 text-sm font-medium">Shopping</span>
+          <label class="flex cursor-pointer flex-col gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
+            <div class="flex items-center gap-2">
+              <Checkbox
+                checked={newListType === 'shopping'}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    newListType = 'shopping';
+                  }
+                }}
+                disabled={isSaving}
+              />
+              <ShoppingCart size={18} class="flex-shrink-0 text-muted-foreground" />
+              <span class="flex-1 text-sm font-medium">Shopping</span>
+            </div>
+
+            <!-- Food toggle (only visible when Shopping is selected) -->
+            {#if newListType === 'shopping'}
+              <div class="ml-7 mt-1 flex items-center justify-end gap-2 border-t border-border/50 pt-2">
+                <div class="food-toggle">
+                  <button
+                    type="button"
+                    class="food-segment"
+                    class:active={!newListIsFood}
+                    onclick={() => newListIsFood = false}
+                    disabled={isSaving}
+                    aria-label="Regular shopping list"
+                    aria-pressed={!newListIsFood}
+                  >
+                    <ListIcon size={14} />
+                    <span class="food-segment-text">Other</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="food-segment"
+                    class:active={newListIsFood}
+                    onclick={() => newListIsFood = true}
+                    disabled={isSaving}
+                    aria-label="Food list"
+                    aria-pressed={newListIsFood}
+                  >
+                    <UtensilsCrossed size={14} />
+                    <span class="food-segment-text">Food</span>
+                  </button>
+                </div>
+              </div>
+            {/if}
           </label>
           <label class="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
             <Checkbox
               checked={newListType === 'todo'}
               onCheckedChange={(checked) => {
-                if (checked) newListType = 'todo';
+                if (checked) {
+                  newListType = 'todo';
+                  newListIsFood = false;
+                }
               }}
               disabled={isSaving}
             />
@@ -564,22 +619,61 @@
         <div class="flex flex-col gap-2">
           <span class="text-sm font-medium">List Type</span>
           <div class="grid grid-cols-2 gap-3">
-            <label class="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
-              <Checkbox
-                checked={renameType === 'shopping'}
-                onCheckedChange={(checked) => {
-                  if (checked) renameType = 'shopping';
-                }}
-                disabled={isSaving}
-              />
-              <ShoppingCart size={18} class="flex-shrink-0 text-muted-foreground" />
-              <span class="flex-1 text-sm font-medium">Shopping</span>
+            <label class="flex cursor-pointer flex-col gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
+              <div class="flex items-center gap-2">
+                <Checkbox
+                  checked={renameType === 'shopping'}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      renameType = 'shopping';
+                    }
+                  }}
+                  disabled={isSaving}
+                />
+                <ShoppingCart size={18} class="flex-shrink-0 text-muted-foreground" />
+                <span class="flex-1 text-sm font-medium">Shopping</span>
+              </div>
+
+              <!-- Food toggle (only visible when Shopping is selected) -->
+              {#if renameType === 'shopping'}
+                <div class="ml-7 mt-1 flex items-center justify-end gap-2 border-t border-border/50 pt-2">
+                  <div class="food-toggle">
+                    <button
+                      type="button"
+                      class="food-segment"
+                      class:active={!renameIsFood}
+                      onclick={() => renameIsFood = false}
+                      disabled={isSaving}
+                      aria-label="Regular shopping list"
+                      aria-pressed={!renameIsFood}
+                    >
+                      <ListIcon size={14} />
+                      <span class="food-segment-text">Other</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="food-segment"
+                      class:active={renameIsFood}
+                      onclick={() => renameIsFood = true}
+                      disabled={isSaving}
+                      aria-label="Food list"
+                      aria-pressed={renameIsFood}
+                    >
+                      <UtensilsCrossed size={14} />
+                      <span class="food-segment-text">Food</span>
+                    </button>
+                  </div>
+                </div>
+              {/if}
             </label>
             <label class="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-muted p-3 transition-colors hover:border-input hover:bg-accent">
               <Checkbox
                 checked={renameType === 'todo'}
                 onCheckedChange={(checked) => {
-                  if (checked) renameType = 'todo';
+                  if (checked) {
+                    renameType = 'todo';
+                    renameIsFood = false;
+                  }
                 }}
                 disabled={isSaving}
               />
@@ -659,3 +753,77 @@
     </DialogContent>
   </Dialog>
 {/if}
+
+<style>
+  /* Food Toggle - Segmented Control */
+  .food-toggle {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    gap: 2px;
+
+    /* Style */
+    background-color: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+
+    /* Spacing */
+    padding: 2px;
+
+    /* Transition */
+    transition: background-color var(--transition-fast);
+  }
+
+  .food-segment {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+
+    /* Size */
+    height: 26px;
+    padding: 0 8px;
+
+    /* Style */
+    background-color: transparent;
+    border: none;
+    border-radius: calc(var(--radius-md) - 2px);
+    color: var(--text-muted);
+    cursor: pointer;
+
+    /* Transition */
+    transition: all var(--transition-fast);
+
+    /* Reset */
+    outline: none;
+  }
+
+  .food-segment-text {
+    /* Typography */
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .food-segment:hover:not(.active):not(:disabled) {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+
+  .food-segment.active {
+    background-color: var(--accent-primary);
+    color: var(--text-on-accent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .food-segment:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
+
+  .food-segment:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

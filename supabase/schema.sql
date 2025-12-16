@@ -17,6 +17,7 @@ create table public.lists (
   type text not null check (type in ('shopping', 'todo')),
   owner_id uuid references auth.users(id) on delete cascade not null,
   is_shared boolean default false,
+  is_food boolean default false not null,
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null,
   deleted_at timestamptz default null
@@ -26,6 +27,7 @@ create table public.lists (
 create index lists_owner_id_idx on public.lists(owner_id);
 create index lists_updated_at_idx on public.lists(updated_at);
 create index lists_deleted_at_idx on public.lists(deleted_at) where deleted_at is null;
+create index lists_is_food_idx on public.lists(is_food) where is_food = true and deleted_at is null;
 
 -- ----------------------------------------------------------------------------
 -- ITEMS TABLE
@@ -35,6 +37,7 @@ create table public.items (
   list_id integer references public.lists(id) on delete cascade not null,
   text text not null,
   is_checked boolean default false,
+  quantity integer default null,
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null,
   deleted_at timestamptz default null
@@ -44,6 +47,7 @@ create table public.items (
 create index items_list_id_idx on public.items(list_id);
 create index items_updated_at_idx on public.items(updated_at);
 create index items_deleted_at_idx on public.items(deleted_at) where deleted_at is null;
+create index items_quantity_idx on public.items(quantity) where quantity > 0 and deleted_at is null;
 
 -- Unique constraint: no duplicate item text per list (case-insensitive, non-deleted only)
 create unique index items_list_text_unique_idx
@@ -120,6 +124,71 @@ create table public.user_preferences (
 -- Indexes
 create index user_preferences_user_id_idx on public.user_preferences(user_id);
 
+-- ----------------------------------------------------------------------------
+-- DISHES TABLE (meal planning)
+-- ----------------------------------------------------------------------------
+create table public.dishes (
+  id serial primary key,
+  name text not null,
+  owner_id uuid references auth.users(id) on delete cascade not null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  deleted_at timestamptz default null
+);
+
+-- Indexes
+create index dishes_owner_id_idx on public.dishes(owner_id);
+create index dishes_updated_at_idx on public.dishes(updated_at);
+create index dishes_deleted_at_idx on public.dishes(deleted_at) where deleted_at is null;
+
+-- Unique constraint: no duplicate dish names (case-insensitive, non-deleted only)
+create unique index dishes_name_unique_idx
+  on public.dishes(lower(name))
+  where deleted_at is null;
+
+-- ----------------------------------------------------------------------------
+-- DISH INGREDIENTS TABLE (meal planning)
+-- ----------------------------------------------------------------------------
+create table public.dish_ingredients (
+  id serial primary key,
+  dish_id integer references public.dishes(id) on delete cascade not null,
+  item_id integer references public.items(id) on delete set null,
+  item_text text not null,
+  created_at timestamptz default now() not null
+);
+
+-- Indexes
+create index dish_ingredients_dish_id_idx on public.dish_ingredients(dish_id);
+create index dish_ingredients_item_id_idx on public.dish_ingredients(item_id) where item_id is not null;
+
+-- Unique constraint: no duplicate ingredients per dish
+create unique index dish_ingredients_unique_idx
+  on public.dish_ingredients(dish_id, item_id)
+  where item_id is not null;
+
+-- ----------------------------------------------------------------------------
+-- MENUS TABLE (meal planning)
+-- ----------------------------------------------------------------------------
+create table public.menus (
+  id serial primary key,
+  planned_date date not null,
+  dish_id integer references public.dishes(id) on delete set null,
+  dish_name text not null,
+  is_confirmed boolean default false not null,
+  confirmed_at timestamptz default null,
+  confirmed_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
+);
+
+-- Indexes
+create index menus_planned_date_idx on public.menus(planned_date desc);
+create index menus_dish_id_idx on public.menus(dish_id) where dish_id is not null;
+create index menus_is_confirmed_idx on public.menus(is_confirmed);
+
+-- Unique constraint: one dish per date
+create unique index menus_date_unique_idx on public.menus(planned_date);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================================
@@ -130,6 +199,9 @@ alter table public.list_shares enable row level security;
 alter table public.user_list_settings enable row level security;
 alter table public.item_check_logs enable row level security;
 alter table public.user_preferences enable row level security;
+alter table public.dishes enable row level security;
+alter table public.dish_ingredients enable row level security;
+alter table public.menus enable row level security;
 
 -- ----------------------------------------------------------------------------
 -- LISTS POLICIES
@@ -335,6 +407,62 @@ create policy "Users can delete own preferences"
   on public.user_preferences for delete
   using (auth.uid() = user_id);
 
+-- ----------------------------------------------------------------------------
+-- DISHES POLICIES
+-- ----------------------------------------------------------------------------
+
+create policy "All users can view all dishes"
+  on public.dishes for select
+  using (auth.uid() is not null);
+
+create policy "Users can create own dishes"
+  on public.dishes for insert
+  with check (auth.uid() = owner_id);
+
+create policy "All users can update all dishes"
+  on public.dishes for update
+  using (auth.uid() is not null);
+
+create policy "Owners can delete own dishes"
+  on public.dishes for delete
+  using (auth.uid() = owner_id);
+
+-- ----------------------------------------------------------------------------
+-- DISH INGREDIENTS POLICIES
+-- ----------------------------------------------------------------------------
+
+create policy "All users can view all dish ingredients"
+  on public.dish_ingredients for select
+  using (auth.uid() is not null);
+
+create policy "All users can create dish ingredients"
+  on public.dish_ingredients for insert
+  with check (auth.uid() is not null);
+
+create policy "All users can delete dish ingredients"
+  on public.dish_ingredients for delete
+  using (auth.uid() is not null);
+
+-- ----------------------------------------------------------------------------
+-- MENUS POLICIES
+-- ----------------------------------------------------------------------------
+
+create policy "All users can view all menus"
+  on public.menus for select
+  using (auth.uid() is not null);
+
+create policy "All users can create menus"
+  on public.menus for insert
+  with check (auth.uid() is not null);
+
+create policy "All users can update menus"
+  on public.menus for update
+  using (auth.uid() is not null);
+
+create policy "All users can delete menus"
+  on public.menus for delete
+  using (auth.uid() is not null);
+
 -- ============================================================================
 -- FUNCTIONS & TRIGGERS
 -- ============================================================================
@@ -409,6 +537,16 @@ create trigger user_list_settings_updated_at
 
 create trigger user_preferences_updated_at
   before update on public.user_preferences
+  for each row
+  execute function public.handle_updated_at();
+
+create trigger dishes_updated_at
+  before update on public.dishes
+  for each row
+  execute function public.handle_updated_at();
+
+create trigger menus_updated_at
+  before update on public.menus
   for each row
   execute function public.handle_updated_at();
 
@@ -610,6 +748,155 @@ end;
 $$ language plpgsql security definer;
 
 -- ----------------------------------------------------------------------------
+-- Get all dishes with their ingredients (meal planning)
+-- ----------------------------------------------------------------------------
+create or replace function public.get_dishes_with_ingredients()
+returns json as $$
+declare
+  result json;
+begin
+  select json_agg(
+    json_build_object(
+      'dish', row_to_json(d),
+      'ingredients', (
+        select coalesce(json_agg(
+          json_build_object(
+            'ingredient', row_to_json(di),
+            'item', case
+              when di.item_id is not null then (
+                select row_to_json(i)
+                from public.items i
+                where i.id = di.item_id
+              )
+              else null
+            end
+          )
+        ), '[]'::json)
+        from public.dish_ingredients di
+        where di.dish_id = d.id
+      )
+    )
+    order by d.name
+  )
+  into result
+  from public.dishes d
+  where d.deleted_at is null;
+
+  return coalesce(result, '[]'::json);
+end;
+$$ language plpgsql security definer;
+
+-- ----------------------------------------------------------------------------
+-- Get menus with dishes for date range (meal planning)
+-- ----------------------------------------------------------------------------
+create or replace function public.get_menus_with_dishes(
+  p_start_date date,
+  p_end_date date
+)
+returns json as $$
+declare
+  result json;
+begin
+  select json_agg(
+    json_build_object(
+      'menu', row_to_json(m),
+      'dish', case
+        when m.dish_id is not null then (
+          select row_to_json(d)
+          from public.dishes d
+          where d.id = m.dish_id
+        )
+        else null
+      end,
+      'ingredients', case
+        when m.dish_id is not null then (
+          select coalesce(json_agg(
+            json_build_object(
+              'ingredient', row_to_json(di),
+              'item', case
+                when di.item_id is not null then (
+                  select row_to_json(i)
+                  from public.items i
+                  where i.id = di.item_id
+                )
+                else null
+              end
+            )
+          ), '[]'::json)
+          from public.dish_ingredients di
+          where di.dish_id = m.dish_id
+        )
+        else '[]'::json
+      end
+    )
+    order by m.planned_date desc
+  )
+  into result
+  from public.menus m
+  where m.planned_date >= p_start_date
+    and m.planned_date <= p_end_date;
+
+  return coalesce(result, '[]'::json);
+end;
+$$ language plpgsql security definer;
+
+-- ----------------------------------------------------------------------------
+-- Confirm menu and update item quantities (meal planning)
+-- ----------------------------------------------------------------------------
+create or replace function public.confirm_menu_and_update_quantities(
+  p_menu_ids integer[],
+  p_excluded_item_ids integer[] default '{}'::integer[]
+)
+returns json as $$
+declare
+  affected_items integer := 0;
+  result json;
+begin
+  -- Mark menus as confirmed
+  update public.menus
+  set
+    is_confirmed = true,
+    confirmed_at = now(),
+    confirmed_by = auth.uid(),
+    updated_at = now()
+  where id = any(p_menu_ids);
+
+  -- Calculate ingredient quantities and update items
+  with ingredient_usage as (
+    select
+      di.item_id,
+      count(distinct m.id) as usage_count
+    from public.menus m
+    inner join public.dish_ingredients di on di.dish_id = m.dish_id
+    where m.id = any(p_menu_ids)
+      and di.item_id is not null
+      and not (di.item_id = any(p_excluded_item_ids))
+    group by di.item_id
+  )
+  update public.items i
+  set
+    is_checked = false,
+    quantity = case
+      when i.is_checked = true then iu.usage_count
+      else coalesce(i.quantity, 0) + iu.usage_count
+    end,
+    updated_at = now()
+  from ingredient_usage iu
+  where i.id = iu.item_id
+    and i.deleted_at is null;
+
+  get diagnostics affected_items = row_count;
+
+  select json_build_object(
+    'confirmed_menus', array_length(p_menu_ids, 1),
+    'affected_items', affected_items
+  ) into result;
+
+  return result;
+end;
+$$ language plpgsql security definer;
+
+-- ----------------------------------------------------------------------------
 -- Auto-manage list_shares when is_shared changes
 -- ----------------------------------------------------------------------------
 -- This trigger ensures that when a list is marked as shared, all other users
@@ -662,3 +949,8 @@ create trigger manage_list_shares_trigger
 alter publication supabase_realtime add table public.lists;
 alter publication supabase_realtime add table public.items;
 alter publication supabase_realtime add table public.item_check_logs;
+
+-- Enable realtime for meal planning tables
+alter publication supabase_realtime add table public.dishes;
+alter publication supabase_realtime add table public.dish_ingredients;
+alter publication supabase_realtime add table public.menus;

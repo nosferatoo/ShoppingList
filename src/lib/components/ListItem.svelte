@@ -6,7 +6,9 @@
   import { Pencil, Trash2 } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Checkbox } from '$lib/components/ui/checkbox';
+  import { Badge } from '$lib/components/ui/badge';
   import type { Item } from '$lib/types';
+  import { hasQuantity } from '$lib/types';
 
   interface Props {
     item: Item;
@@ -153,6 +155,11 @@
     >
       {item.text}
     </span>
+
+    <!-- Quantity badge -->
+    {#if hasQuantity(item)}
+      <Badge variant="secondary" class="ml-auto flex-shrink-0 text-xs">×{item.quantity}</Badge>
+    {/if}
 
     <!-- Action buttons (desktop hover) -->
     <div class="actions-desktop">
@@ -358,16 +365,16 @@
     transition: all var(--transition-fast) !important;
   }
 
-  /* Desktop: gray default, blue on hover */
+  /* Desktop: gray default, orange on hover */
   @media (min-width: 1024px) {
     :global(.action-button-edit) {
       color: var(--text-secondary) !important;
     }
 
     :global(.action-button-edit:hover) {
-      background-color: var(--blue-medium) !important;
+      background-color: var(--accent-primary) !important;
       color: var(--text-inverse) !important;
-      border-color: var(--blue-medium) !important;
+      border-color: var(--accent-primary) !important;
       box-shadow: var(--shadow-sm) !important;
       transform: scale(1.05) !important;
     }
@@ -388,16 +395,16 @@
     transition: all var(--transition-fast) !important;
   }
 
-  /* Desktop: gray default, red on hover */
+  /* Desktop: gray default, orange on hover */
   @media (min-width: 1024px) {
     :global(.action-button-delete) {
       color: var(--text-secondary) !important;
     }
 
     :global(.action-button-delete:hover) {
-      background-color: var(--error) !important;
+      background-color: var(--accent-primary) !important;
       color: var(--text-inverse) !important;
-      border-color: var(--error) !important;
+      border-color: var(--accent-primary) !important;
       box-shadow: var(--shadow-sm) !important;
       transform: scale(1.05) !important;
     }

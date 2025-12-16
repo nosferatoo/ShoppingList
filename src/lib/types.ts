@@ -9,6 +9,7 @@ export interface List {
   type: ListType;
   owner_id: string;
   is_shared: boolean;
+  is_food: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -19,6 +20,7 @@ export interface Item {
   list_id: number;
   text: string;
   is_checked: boolean;
+  quantity: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -50,6 +52,35 @@ export interface CheckLog {
   item_id: number | null;
 }
 
+export interface Dish {
+  id: number;
+  name: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface DishIngredient {
+  id: number;
+  dish_id: number;
+  item_id: number | null;
+  item_text: string;
+  created_at: string;
+}
+
+export interface Menu {
+  id: number;
+  planned_date: string;
+  dish_id: number | null;
+  dish_name: string;
+  is_confirmed: boolean;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -65,6 +96,24 @@ export interface ListWithItems {
   list: List;
   position: number;
   items: Item[];
+}
+
+// Combined types for meal planning
+export interface DishWithIngredients {
+  dish: Dish;
+  ingredients: Array<{
+    ingredient: DishIngredient;
+    item: Item | null;
+  }>;
+}
+
+export interface MenuWithDetails {
+  menu: Menu;
+  dish: Dish | null;
+  ingredients: Array<{
+    ingredient: DishIngredient;
+    item: Item | null;
+  }>;
 }
 
 // ============================================================================
@@ -91,6 +140,7 @@ export interface Database {
           type: 'shopping' | 'todo'
           owner_id: string
           is_shared: boolean
+          is_food: boolean
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -101,6 +151,7 @@ export interface Database {
           type: 'shopping' | 'todo'
           owner_id: string
           is_shared?: boolean
+          is_food?: boolean
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -111,6 +162,7 @@ export interface Database {
           type?: 'shopping' | 'todo'
           owner_id?: string
           is_shared?: boolean
+          is_food?: boolean
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -131,6 +183,7 @@ export interface Database {
           list_id: number
           text: string
           is_checked: boolean
+          quantity: number | null
           created_at: string
           updated_at: string
           deleted_at: string | null
@@ -140,6 +193,7 @@ export interface Database {
           list_id: number
           text: string
           is_checked?: boolean
+          quantity?: number | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -149,6 +203,7 @@ export interface Database {
           list_id?: number
           text?: string
           is_checked?: boolean
+          quantity?: number | null
           created_at?: string
           updated_at?: string
           deleted_at?: string | null
@@ -293,6 +348,131 @@ export interface Database {
           }
         ]
       }
+      dishes: {
+        Row: {
+          id: number
+          name: string
+          owner_id: string
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: number
+          name: string
+          owner_id: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: number
+          name?: string
+          owner_id?: string
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'dishes_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      dish_ingredients: {
+        Row: {
+          id: number
+          dish_id: number
+          item_id: number | null
+          item_text: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          dish_id: number
+          item_id?: number | null
+          item_text: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          dish_id?: number
+          item_id?: number | null
+          item_text?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'dish_ingredients_dish_id_fkey'
+            columns: ['dish_id']
+            isOneToOne: false
+            referencedRelation: 'dishes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'dish_ingredients_item_id_fkey'
+            columns: ['item_id']
+            isOneToOne: false
+            referencedRelation: 'items'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      menus: {
+        Row: {
+          id: number
+          planned_date: string
+          dish_id: number | null
+          dish_name: string
+          is_confirmed: boolean
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          planned_date: string
+          dish_id?: number | null
+          dish_name: string
+          is_confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          planned_date?: string
+          dish_id?: number | null
+          dish_name?: string
+          is_confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'menus_dish_id_fkey'
+            columns: ['dish_id']
+            isOneToOne: false
+            referencedRelation: 'dishes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'menus_confirmed_by_fkey'
+            columns: ['confirmed_by']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       user_preferences: {
         Row: {
           id: number
@@ -365,6 +545,24 @@ export interface Database {
         }
         Returns: undefined
       }
+      get_dishes_with_ingredients: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      get_menus_with_dishes: {
+        Args: {
+          p_start_date: string
+          p_end_date: string
+        }
+        Returns: Json
+      }
+      confirm_menu_and_update_quantities: {
+        Args: {
+          p_menu_ids: number[]
+          p_excluded_item_ids?: number[]
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -385,6 +583,9 @@ export type DbItem = Database['public']['Tables']['items']['Row'];
 export type DbListShare = Database['public']['Tables']['list_shares']['Row'];
 export type DbUserListSettings = Database['public']['Tables']['user_list_settings']['Row'];
 export type DbCheckLog = Database['public']['Tables']['item_check_logs']['Row'];
+export type DbDish = Database['public']['Tables']['dishes']['Row'];
+export type DbDishIngredient = Database['public']['Tables']['dish_ingredients']['Row'];
+export type DbMenu = Database['public']['Tables']['menus']['Row'];
 
 // Shorthand for insert types
 export type DbListInsert = Database['public']['Tables']['lists']['Insert'];
@@ -392,6 +593,9 @@ export type DbItemInsert = Database['public']['Tables']['items']['Insert'];
 export type DbListShareInsert = Database['public']['Tables']['list_shares']['Insert'];
 export type DbUserListSettingsInsert = Database['public']['Tables']['user_list_settings']['Insert'];
 export type DbCheckLogInsert = Database['public']['Tables']['item_check_logs']['Insert'];
+export type DbDishInsert = Database['public']['Tables']['dishes']['Insert'];
+export type DbDishIngredientInsert = Database['public']['Tables']['dish_ingredients']['Insert'];
+export type DbMenuInsert = Database['public']['Tables']['menus']['Insert'];
 
 // Shorthand for update types
 export type DbListUpdate = Database['public']['Tables']['lists']['Update'];
@@ -399,6 +603,9 @@ export type DbItemUpdate = Database['public']['Tables']['items']['Update'];
 export type DbListShareUpdate = Database['public']['Tables']['list_shares']['Update'];
 export type DbUserListSettingsUpdate = Database['public']['Tables']['user_list_settings']['Update'];
 export type DbCheckLogUpdate = Database['public']['Tables']['item_check_logs']['Update'];
+export type DbDishUpdate = Database['public']['Tables']['dishes']['Update'];
+export type DbDishIngredientUpdate = Database['public']['Tables']['dish_ingredients']['Update'];
+export type DbMenuUpdate = Database['public']['Tables']['menus']['Update'];
 
 // ============================================================================
 // SUPABASE FUNCTION RETURN TYPES
@@ -429,6 +636,31 @@ export interface SyncItemsResponse {
 export interface ListPosition {
   list_id: number;
   position: number;
+}
+
+// Response from get_dishes_with_ingredients()
+export interface GetDishesWithIngredientsResponse {
+  dish: Dish;
+  ingredients: Array<{
+    ingredient: DishIngredient;
+    item: Item | null;
+  }>;
+}
+
+// Response from get_menus_with_dishes()
+export interface GetMenusWithDishesResponse {
+  menu: Menu;
+  dish: Dish | null;
+  ingredients: Array<{
+    ingredient: DishIngredient;
+    item: Item | null;
+  }>;
+}
+
+// Response from confirm_menu_and_update_quantities()
+export interface ConfirmMenuResponse {
+  confirmed_menus: number;
+  affected_items: number;
 }
 
 // ============================================================================
@@ -510,18 +742,46 @@ export function isSharedList(list: List): list is List & { is_shared: true } {
   return list.is_shared === true;
 }
 
+/**
+ * Check if a list is a food list
+ */
+export function isFoodList(list: List): list is List & { is_food: true } {
+  return list.is_food === true;
+}
+
+/**
+ * Check if a dish is not deleted
+ */
+export function isActiveDish(dish: Dish): dish is Dish & { deleted_at: null } {
+  return dish.deleted_at === null;
+}
+
+/**
+ * Check if a menu is confirmed
+ */
+export function isConfirmedMenu(menu: Menu): menu is Menu & { is_confirmed: true } {
+  return menu.is_confirmed === true;
+}
+
+/**
+ * Check if an item has a quantity
+ */
+export function hasQuantity(item: Item): item is Item & { quantity: number } {
+  return item.quantity !== null && item.quantity > 1;
+}
+
 // ============================================================================
 // UTILITY TYPES
 // ============================================================================
 
 // Partial update for items (only changed fields)
-export type ItemPartialUpdate = Partial<Pick<Item, 'text' | 'is_checked' | 'deleted_at'>> & {
+export type ItemPartialUpdate = Partial<Pick<Item, 'text' | 'is_checked' | 'quantity' | 'deleted_at'>> & {
   id: number;
   updated_at: string;
 };
 
 // Partial update for lists (only changed fields)
-export type ListPartialUpdate = Partial<Pick<List, 'title' | 'type' | 'is_shared' | 'deleted_at'>> & {
+export type ListPartialUpdate = Partial<Pick<List, 'title' | 'type' | 'is_shared' | 'is_food' | 'deleted_at'>> & {
   id: number;
   updated_at: string;
 };

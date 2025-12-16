@@ -2,7 +2,7 @@
   // App header with settings icon
   // Fixed top bar with title and settings access
 
-  import { Settings, RefreshCw, ShoppingCart, CheckCircle, List, Layers } from 'lucide-svelte';
+  import { Settings, RefreshCw, ShoppingCart, CheckCircle, List, Layers, UtensilsCrossed } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
   import { syncStore } from '$lib/stores/sync.svelte';
@@ -14,11 +14,11 @@
     totalCount?: number;
     checkedCount?: number;
     onSettingsClick?: () => void;
-    isMasterMode?: boolean;
-    onToggleMasterMode?: (enabled: boolean) => void;
+    viewMode?: 'lists' | 'master' | 'meals';
+    onViewModeChange?: (mode: 'lists' | 'master' | 'meals') => void;
   }
 
-  let { title = 'Lists', listType, isShared = false, totalCount = 0, checkedCount = 0, onSettingsClick, isMasterMode = false, onToggleMasterMode }: Props = $props();
+  let { title = 'Lists', listType, isShared = false, totalCount = 0, checkedCount = 0, onSettingsClick, viewMode = 'lists', onViewModeChange }: Props = $props();
 
   // Sync status from store
   let isSyncing = $derived(syncStore.isSyncing);
@@ -54,59 +54,47 @@
   class="header"
 >
   <div class="header-content">
-    <!-- Title/Logo with optional icon and shared badge -->
+    <!-- Left side: View Toggle - Segmented Control -->
     <div class="header-left">
-      {#if listType}
-        {#if listType === 'shopping'}
-          <ShoppingCart size={20} class="list-icon" />
-        {:else}
-          <CheckCircle size={20} class="list-icon" />
-        {/if}
-      {/if}
-
-      <div class="header-title-section">
-        <h1 class="header-title">
-          {title}
-        </h1>
-
-        {#if totalCount > 0}
-          <span class="item-count">
-            {#if isMasterMode}
-              {totalCount} {totalCount === 1 ? 'item' : 'items'} remaining
-            {:else}
-              {checkedCount} of {totalCount} completed
-            {/if}
-          </span>
-        {/if}
-      </div>
-    </div>
-
-    <!-- Right side: Master Toggle + Settings -->
-    <div class="header-actions">
-      <!-- Master List Toggle - Segmented Control -->
       <div class="segmented-control">
         <button
           type="button"
           class="segment"
-          class:active={!isMasterMode}
-          onclick={() => onToggleMasterMode?.(false)}
+          class:active={viewMode === 'lists'}
+          onclick={() => onViewModeChange?.('lists')}
           aria-label="Normal list view"
-          aria-pressed={!isMasterMode}
+          aria-pressed={viewMode === 'lists'}
         >
           <List size={18} />
+          <span class="segment-label">Lists</span>
         </button>
         <button
           type="button"
           class="segment"
-          class:active={isMasterMode}
-          onclick={() => onToggleMasterMode?.(true)}
+          class:active={viewMode === 'master'}
+          onclick={() => onViewModeChange?.('master')}
           aria-label="Master list view"
-          aria-pressed={isMasterMode}
+          aria-pressed={viewMode === 'master'}
         >
           <Layers size={18} />
+          <span class="segment-label">Master</span>
+        </button>
+        <button
+          type="button"
+          class="segment"
+          class:active={viewMode === 'meals'}
+          onclick={() => onViewModeChange?.('meals')}
+          aria-label="Meal planner"
+          aria-pressed={viewMode === 'meals'}
+        >
+          <UtensilsCrossed size={18} />
+          <span class="segment-label">Meals</span>
         </button>
       </div>
+    </div>
 
+    <!-- Right side: Settings -->
+    <div class="header-actions">
       <!-- Settings Button -->
       <Button
         variant="ghost"
@@ -166,53 +154,7 @@
     /* Layout */
     display: flex;
     align-items: center;
-    gap: var(--space-2);
     flex: 1;
-    min-width: 0; /* Allow text truncation */
-  }
-
-  /* Class is applied to Lucide icon components */
-  :global(.list-icon) {
-    /* Color */
-    color: var(--text-secondary);
-    flex-shrink: 0;
-  }
-
-  .header-title-section {
-    /* Layout */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    flex: 1;
-    min-width: 0; /* Allow text truncation */
-  }
-
-  .header-title {
-    /* Typography */
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-    font-family: var(--font-heading);
-    line-height: 1.2;
-
-    /* Text handling */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    /* Reset */
-    margin: 0;
-  }
-
-  .item-count {
-    /* Typography */
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    line-height: 1.2;
-
-    /* Reset */
-    margin: 0;
   }
 
   /* Header Actions */
@@ -247,10 +189,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: var(--space-1-5);
 
     /* Size */
-    width: 36px;
+    min-width: 52px;
     height: 32px;
+    padding: 0 var(--space-3);
 
     /* Style */
     background-color: transparent;
@@ -263,8 +207,14 @@
     transition: all var(--transition-fast);
 
     /* Reset */
-    padding: 0;
     outline: none;
+  }
+
+  .segment-label {
+    /* Typography */
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    white-space: nowrap;
   }
 
   .segment:hover:not(.active) {
