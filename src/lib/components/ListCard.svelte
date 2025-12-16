@@ -271,12 +271,20 @@
     }
   }
 
-  /* Mobile: full width, no max */
+  /* Mobile: grid layout for fixed header/input, scrollable items */
   @media (max-width: 1023px) {
     :global(.list-card) {
       max-width: unset;
       border-radius: 0;
       box-shadow: none;
+
+      /* Grid layout - explicit height */
+      display: grid !important;
+      grid-template-rows: auto minmax(0, 1fr);
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      position: relative;
     }
   }
 
@@ -290,10 +298,11 @@
     gap: var(--space-3);
   }
 
-  /* Mobile: hide list header (shown in app header instead) */
+  /* Mobile: show as grid row 1 */
   @media (max-width: 1023px) {
     :global(.card-header) {
-      display: none;
+      grid-row: 1;
+      border-bottom: 1px solid var(--border-subtle);
     }
   }
 
@@ -361,6 +370,13 @@
   @media (max-width: 1023px) {
     :global(.card-content) {
       padding: 0 var(--space-3) 0 !important;
+
+      /* Grid layout for add-item and items */
+      grid-row: 2;
+      display: grid !important;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      min-height: 0;
     }
   }
 
@@ -368,6 +384,15 @@
   .add-item-form {
     /* Spacing */
     margin-bottom: var(--space-4);
+  }
+
+  /* Mobile: grid row 1 (non-scrolling) */
+  @media (max-width: 1023px) {
+    .add-item-form {
+      grid-row: 1;
+      margin-bottom: 0;
+      padding-bottom: var(--space-3);
+    }
   }
 
   /* Integrated input with button */
@@ -477,13 +502,14 @@
     scrollbar-color: var(--border-default) transparent;
   }
 
-  /* Mobile: constrain height to fill screen without browser scroll */
+  /* Mobile: grid row 2 (scrollable area only) */
   @media (max-width: 1023px) {
     .items-container {
-      height: calc(100vh - 208px);
-      max-height: calc(100vh - 208px);
-      min-height: calc(100vh - 208px);
-      flex-shrink: 0;
+      grid-row: 2;
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
     }
   }
 

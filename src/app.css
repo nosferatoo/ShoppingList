@@ -295,6 +295,14 @@
     outline-offset: 2px;
   }
 
+  /* Prevent text selection globally */
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
   /* Allow text selection in input fields and editable content */
   input,
   textarea,

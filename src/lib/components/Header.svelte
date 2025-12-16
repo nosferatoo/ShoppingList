@@ -60,17 +60,6 @@
         <button
           type="button"
           class="segment"
-          class:active={viewMode === 'lists'}
-          onclick={() => onViewModeChange?.('lists')}
-          aria-label="Normal list view"
-          aria-pressed={viewMode === 'lists'}
-        >
-          <List size={18} />
-          <span class="segment-label">Lists</span>
-        </button>
-        <button
-          type="button"
-          class="segment"
           class:active={viewMode === 'master'}
           onclick={() => onViewModeChange?.('master')}
           aria-label="Master list view"
@@ -78,6 +67,17 @@
         >
           <Layers size={18} />
           <span class="segment-label">Master</span>
+        </button>
+        <button
+          type="button"
+          class="segment"
+          class:active={viewMode === 'lists'}
+          onclick={() => onViewModeChange?.('lists')}
+          aria-label="Normal list view"
+          aria-pressed={viewMode === 'lists'}
+        >
+          <List size={18} />
+          <span class="segment-label">Lists</span>
         </button>
         <button
           type="button"
@@ -189,7 +189,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-1-5);
+    gap: var(--space-2);
 
     /* Size */
     min-width: 52px;

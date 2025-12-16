@@ -379,12 +379,26 @@
   // ============================================================================
 
   function handleAddNewDay() {
+    // Increment additional days to add a new day to the list
     additionalDays++;
 
-    // Scroll to bottom after new day is added
-    const isMobile = window.innerWidth < 1024;
+    // Calculate the date for the newly added day
+    // The new day will be: today + 1 (tomorrow) + 7 (base days) + additionalDays
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const newDayDate = new Date(today);
+    newDayDate.setDate(today.getDate() + 1 + 7 + additionalDays - 1);
+    const newDayISO = formatDateISO(newDayDate);
 
-    if (isMobile && footerRef) {
+    // Automatically open dish selection for the new day
+    setTimeout(() => {
+      openDropdownDate = newDayISO;
+    }, 100);
+
+    // Scroll to bottom after new day is added
+    const isMobileView = window.innerWidth < 1024;
+
+    if (isMobileView && footerRef) {
       footerRef.scrollIntoView({ behavior: 'smooth', block: 'end' });
     } else if (contentRef) {
       queueMicrotask(() => {
