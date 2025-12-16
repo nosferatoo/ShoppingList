@@ -5,6 +5,7 @@
   import { syncStore } from '$lib/stores/sync.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
   import { registerServiceWorker, captureInstallPrompt } from '$lib/pwa/serviceWorkerHelper';
+  import { Toaster } from '$lib/components/ui/sonner';
   import '../app.css';
 
   // Props from layout load
@@ -131,4 +132,5 @@
   });
 </script>
 
+<Toaster position="bottom-center" />
 {@render children()}

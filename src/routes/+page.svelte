@@ -16,7 +16,7 @@
   import MenuConfirmationDialog from '$lib/components/MenuConfirmationDialog.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
-  import { toastStore } from '$lib/stores/toast.svelte';
+  import { toast } from 'svelte-sonner';
   import { themeStore, type ThemeColor } from '$lib/stores/theme.svelte';
   import { db } from '$lib/db/local';
   import type { SyncResult } from '$lib/db/sync';
@@ -432,23 +432,9 @@
     currentListIndex = index;
   }
 
-  // Handle user dropdown toggle
-  function toggleUserDropdown() {
-    isUserDropdownOpen = !isUserDropdownOpen;
-  }
-
-  // Handle click outside to close dropdown
-  function handleClickOutside(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (!target.closest('.user-info-floating')) {
-      isUserDropdownOpen = false;
-    }
-  }
-
   // Handle logout
   async function handleLogout(e: MouseEvent) {
     e.stopPropagation();
-    isUserDropdownOpen = false;
     try {
       await authStore.signOut();
       // Redirect to login
@@ -564,11 +550,11 @@
     try {
       await syncStore.performClearCacheAndSync();
       await loadListsFromIndexedDB();
-      toastStore.success('Cache cleared and synced');
+      toast.success('Cache cleared and synced');
     } catch (error) {
       console.error('Clear cache and sync failed:', error);
       const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
-      toastStore.error(message);
+      toast.error(message);
     }
   }
 
@@ -685,7 +671,7 @@
   <title>Lists</title>
 </svelte:head>
 
-<svelte:window onclick={handleClickOutside} />
+
 
 <div class="app-container">
   <!-- Header -->
@@ -710,31 +696,22 @@
           <div class="user-avatar-floating">
             <User size={16} />
           </div>
-          <button
-            type="button"
-            class="user-details-floating"
-            onclick={toggleUserDropdown}
-            aria-label="User menu"
-            aria-expanded={isUserDropdownOpen}
-          >
-            <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
-            <ChevronDown size={14} class="dropdown-chevron" />
-          </button>
-
-          <!-- User Dropdown Menu -->
-          {#if isUserDropdownOpen}
-            <div class="user-dropdown-menu">
-              <!-- Logout button -->
-              <button
-                type="button"
-                class="dropdown-item logout-item"
-                onclick={handleLogout}
-              >
-                <LogOut size={16} />
+          <DropdownMenu.Root bind:open={isUserDropdownOpen}>
+            <DropdownMenu.Trigger
+              type="button"
+              class="user-details-floating"
+              aria-label="User menu"
+            >
+              <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
+              <ChevronDown size={14} class="dropdown-chevron" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="start" class="w-48">
+              <DropdownMenu.Item onclick={handleLogout}>
+                <LogOut size={16} class="mr-2" />
                 <span>Log out</span>
-              </button>
-            </div>
-          {/if}
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
         </div>
       </div>
 

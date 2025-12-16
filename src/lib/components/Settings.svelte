@@ -7,7 +7,7 @@
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
-  import { toastStore } from '$lib/stores/toast.svelte';
+  import { toast } from 'svelte-sonner';
   import { themeStore, type ThemeColor } from '$lib/stores/theme.svelte';
 
   interface Props {
@@ -90,11 +90,11 @@
 
     try {
       await syncStore.performClearCacheAndSync();
-      toastStore.success('Cache cleared and synced');
+      toast.success('Cache cleared and synced');
     } catch (error) {
       console.error('Clear cache and sync failed:', error);
       const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
-      toastStore.error(message);
+      toast.error(message);
     }
   }
 
