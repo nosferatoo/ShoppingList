@@ -708,7 +708,7 @@
             </DropdownMenu.Trigger>
           </div>
           <DropdownMenu.Content align="start" class="w-48">
-            <DropdownMenu.Item variant="destructive" onclick={handleLogout}>
+            <DropdownMenu.Item class="logout-item-custom" onclick={handleLogout}>
               <LogOut size={16} />
               <span>Log out</span>
             </DropdownMenu.Item>
@@ -1719,6 +1719,24 @@
 
     .logout-item:active {
       background-color: rgba(239, 68, 68, 0.15);
+    }
+
+    /* Custom logout item styling for shadcn DropdownMenu.Item */
+    :global([data-slot="dropdown-menu-item"].logout-item-custom) {
+      color: #ef4444 !important;
+    }
+
+    :global([data-slot="dropdown-menu-item"].logout-item-custom[data-highlighted]) {
+      background-color: rgba(239, 68, 68, 0.1) !important;
+      color: #f87171 !important;
+    }
+
+    :global([data-slot="dropdown-menu-item"].logout-item-custom) :global(svg) {
+      color: #ef4444 !important;
+    }
+
+    :global([data-slot="dropdown-menu-item"].logout-item-custom[data-highlighted]) :global(svg) {
+      color: #f87171 !important;
     }
 
     /* ========================================================================
