@@ -826,17 +826,6 @@ export interface PaginatedResponse<T> {
 // UI STATE TYPES
 // ============================================================================
 
-export interface ToastNotification {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  duration?: number;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
-
 export interface ModalState {
   isOpen: boolean;
   type: 'create-list' | 'edit-list' | 'edit-item' | 'delete-confirm' | 'settings' | null;
