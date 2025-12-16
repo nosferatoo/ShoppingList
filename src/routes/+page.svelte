@@ -697,17 +697,21 @@
             <User size={16} />
           </div>
           <DropdownMenu.Root bind:open={isUserDropdownOpen}>
-            <DropdownMenu.Trigger
-              type="button"
-              class="user-details-floating"
-              aria-label="User menu"
-            >
-              <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
-              <ChevronDown size={14} class="dropdown-chevron" />
+            <DropdownMenu.Trigger asChild let:builder>
+              <button
+                type="button"
+                class="user-details-floating"
+                aria-label="User menu"
+                {...builder}
+                use:builder.action
+              >
+                <p class="user-email-floating">{authStore.userEmail || 'No user'}</p>
+                <ChevronDown size={14} class="dropdown-chevron" />
+              </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="start" class="w-48">
-              <DropdownMenu.Item onclick={handleLogout}>
-                <LogOut size={16} class="mr-2" />
+              <DropdownMenu.Item variant="destructive" onclick={handleLogout}>
+                <LogOut size={16} />
                 <span>Log out</span>
               </DropdownMenu.Item>
             </DropdownMenu.Content>
