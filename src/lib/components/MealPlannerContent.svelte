@@ -5,9 +5,11 @@
   import { Trash2, ChevronDown, Plus, Check } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
+  import * as BottomSheet from '$lib/components/ui/bottom-sheet';
   import * as Command from '$lib/components/ui/command';
   import type { Menu, MenuWithDetails, Dish, DishWithIngredients } from '$lib/types';
   import { isActiveDish } from '$lib/types';
+  import { browser } from '$app/environment';
 
   // Props
   interface Props {
@@ -29,6 +31,8 @@
   let contentRef = $state<HTMLDivElement | null>(null);
   let footerRef = $state<HTMLDivElement | null>(null);
   let additionalDays = $state(0); // Extra days beyond default 7
+  let isMobile = $state(false); // Detect mobile viewport
+  let selectedDishRef = $state<HTMLButtonElement | null>(null); // Ref to selected dish in bottom sheet
 
   // Derived state - all dates to display (history + upcoming)
   let allDates = $derived.by(() => {
@@ -80,6 +84,18 @@
     return menus.some(m => !m.menu.is_confirmed && m.menu.dish_id !== null);
   });
 
+  // Detect mobile viewport
+  $effect(() => {
+    if (browser) {
+      const checkMobile = () => {
+        isMobile = window.innerWidth < 1024;
+      };
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  });
+
   // Load data on mount
   $effect(() => {
     loadData();
@@ -102,6 +118,19 @@
           }
         });
       }
+    }
+  });
+
+  // Scroll selected dish into view when bottom sheet opens
+  $effect(() => {
+    if (isMobile && openDropdownDate && selectedDishRef) {
+      // Small delay to ensure the bottom sheet is fully rendered
+      setTimeout(() => {
+        selectedDishRef?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
     }
   });
 
@@ -365,6 +394,21 @@
       });
     }
   }
+
+  // ============================================================================
+  // SELECTED DISH REF ACTION
+  // ============================================================================
+
+  function captureSelectedDishRef(node: HTMLElement, isSelected: boolean) {
+    if (isSelected) {
+      selectedDishRef = node as HTMLButtonElement;
+    }
+    return {
+      destroy() {
+        // Cleanup if needed
+      }
+    };
+  }
 </script>
 
 <!-- Wrapper container for proper flex layout -->
@@ -439,60 +483,77 @@
                   {/if}
                 </div>
               {:else}
-                <!-- Not confirmed: Dish combobox -->
-                <Popover.Root
-                  open={isDropdownOpen}
-                  onOpenChange={(open) => {
-                    openDropdownDate = open ? dateISO : null;
-                  }}
-                >
-                  <Popover.Trigger class="w-full">
-                    <Button
-                      variant="ghost"
-                      class="w-full justify-start"
-                      disabled={isSaving}
-                      role="combobox"
-                      aria-expanded={isDropdownOpen}
-                    >
-                      <span class="truncate text-left">
-                        {menu?.dish?.name || menu?.menu.dish_name || 'No dish planned'}
-                      </span>
-                      <ChevronDown size={16} class="ml-auto flex-shrink-0 opacity-50" />
-                    </Button>
-                  </Popover.Trigger>
-                  <Popover.Content class="dish-selector-popover w-[450px] p-0" align="start">
-                    <Command.Root class="dish-selector-command">
-                      <Command.Input placeholder="Search dishes..." class="h-10 border-b" />
-                      <Command.List class="max-h-[450px]">
-                        <Command.Empty class="py-6 text-center text-sm">No dishes found</Command.Empty>
-                        <Command.Group>
-                          <Command.Item
-                            value="none"
-                            class="dish-selector-item"
-                            onSelect={() => {
-                              handleSelectDish(date, null);
-                              openDropdownDate = null;
-                            }}
-                          >
-                            No dish planned
-                          </Command.Item>
-                          {#each dishes as dish (dish.id)}
+                <!-- Not confirmed: Dish combobox - Mobile: Bottom Sheet, Desktop: Popover -->
+                {#if isMobile}
+                  <!-- Mobile: Bottom Sheet -->
+                  <button
+                    class="w-full flex items-center justify-between px-4 py-2 text-sm text-left"
+                    disabled={isSaving}
+                    onclick={() => {
+                      openDropdownDate = dateISO;
+                    }}
+                  >
+                    <span class="truncate">
+                      {menu?.dish?.name || menu?.menu.dish_name || 'No dish planned'}
+                    </span>
+                    <ChevronDown size={16} class="ml-auto flex-shrink-0 opacity-50" />
+                  </button>
+                {:else}
+                  <!-- Desktop: Popover -->
+                  <Popover.Root
+                    open={isDropdownOpen}
+                    onOpenChange={(open) => {
+                      openDropdownDate = open ? dateISO : null;
+                    }}
+                  >
+                    <Popover.Trigger class="w-full">
+                      <Button
+                        variant="ghost"
+                        class="w-full justify-start"
+                        disabled={isSaving}
+                        role="combobox"
+                        aria-expanded={isDropdownOpen}
+                      >
+                        <span class="truncate text-left">
+                          {menu?.dish?.name || menu?.menu.dish_name || 'No dish planned'}
+                        </span>
+                        <ChevronDown size={16} class="ml-auto flex-shrink-0 opacity-50" />
+                      </Button>
+                    </Popover.Trigger>
+                    <Popover.Content class="dish-selector-popover w-[450px] p-0" align="start">
+                      <Command.Root class="dish-selector-command">
+                        <Command.Input placeholder="Search dishes..." class="h-10 border-b" />
+                        <Command.List class="max-h-[450px]">
+                          <Command.Empty class="py-6 text-center text-sm">No dishes found</Command.Empty>
+                          <Command.Group>
                             <Command.Item
-                              value={dish.name}
-                              class="dish-selector-item {menu?.menu.dish_id === dish.id ? 'dish-selector-item-selected' : ''}"
+                              value="none"
+                              class="dish-selector-item"
                               onSelect={() => {
-                                handleSelectDish(date, dish.id);
+                                handleSelectDish(date, null);
                                 openDropdownDate = null;
                               }}
                             >
-                              {dish.name}
+                              No dish planned
                             </Command.Item>
-                          {/each}
-                        </Command.Group>
-                      </Command.List>
-                    </Command.Root>
-                  </Popover.Content>
-                </Popover.Root>
+                            {#each dishes as dish (dish.id)}
+                              <Command.Item
+                                value={dish.name}
+                                class="dish-selector-item {menu?.menu.dish_id === dish.id ? 'dish-selector-item-selected' : ''}"
+                                onSelect={() => {
+                                  handleSelectDish(date, dish.id);
+                                  openDropdownDate = null;
+                                }}
+                              >
+                                {dish.name}
+                              </Command.Item>
+                            {/each}
+                          </Command.Group>
+                        </Command.List>
+                      </Command.Root>
+                    </Popover.Content>
+                  </Popover.Root>
+                {/if}
               {/if}
 
               <!-- Confirmed icon or Delete button -->
@@ -551,6 +612,75 @@
     </div>
   </div>
 </div>
+
+<!-- Mobile Bottom Sheet for Dish Selection -->
+{#if isMobile && openDropdownDate}
+  {@const selectedDate = allDates.find(d => formatDateISO(d.date) === openDropdownDate)?.date}
+  {@const selectedMenu = menusMap.get(openDropdownDate || '')}
+  <BottomSheet.Root
+    open={true}
+    onOpenChange={(open) => {
+      if (!open) openDropdownDate = null;
+    }}
+  >
+    <BottomSheet.Content class="p-0">
+      <!-- Drag Handle -->
+      <div class="flex justify-center pt-3 pb-2">
+        <div class="h-1 w-10 rounded-full bg-muted-foreground/30"></div>
+      </div>
+
+      <!-- Header -->
+      <BottomSheet.Header class="px-4 pb-3 border-b border-border">
+        <BottomSheet.Title>
+          {#if selectedDate}
+            Select Dish for {formatDateDisplay(selectedDate)} ({formatDayName(selectedDate)})
+          {:else}
+            Select Dish
+          {/if}
+        </BottomSheet.Title>
+      </BottomSheet.Header>
+
+      <!-- Dish List (no search input on mobile) -->
+      <div class="max-h-[60vh] overflow-y-auto">
+        <!-- No dish planned option -->
+        <button
+          class="w-full text-left px-4 py-4 border-b border-border transition-colors hover:bg-accent active:bg-accent"
+          onclick={() => {
+            if (selectedDate) {
+              handleSelectDish(selectedDate, null);
+              openDropdownDate = null;
+            }
+          }}
+        >
+          <span class="text-sm">No dish planned</span>
+        </button>
+
+        <!-- Dish items -->
+        {#each dishes as dish (dish.id)}
+          {@const isSelected = selectedMenu?.menu.dish_id === dish.id}
+          <button
+            use:captureSelectedDishRef={isSelected}
+            class="w-full text-left px-4 py-4 border-b border-border transition-colors hover:bg-accent active:bg-accent {isSelected ? 'bg-accent font-medium border-l-4 border-l-primary' : ''}"
+            onclick={() => {
+              if (selectedDate) {
+                handleSelectDish(selectedDate, dish.id);
+                openDropdownDate = null;
+              }
+            }}
+          >
+            <span class="text-sm {isSelected ? 'text-primary' : ''}">{dish.name}</span>
+          </button>
+        {/each}
+
+        {#if dishes.length === 0}
+          <div class="py-8 text-center text-sm text-muted-foreground">
+            No dishes available
+          </div>
+        {/if}
+      </div>
+    </BottomSheet.Content>
+  </BottomSheet.Root>
+{/if}
 
 <style>
   .meal-planner-wrapper {
