@@ -19,7 +19,7 @@
   let { groups, onToggleItem }: Props = $props();
 </script>
 
-<div class="master-list-container">
+<div class="master-list-container" data-scroll-container>
   {#if groups.length === 0}
     <!-- Empty state -->
     <div class="empty-state">

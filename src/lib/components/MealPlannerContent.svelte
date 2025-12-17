@@ -428,7 +428,7 @@
 <!-- Wrapper container for proper flex layout -->
 <div class="meal-planner-wrapper">
   <!-- Content -->
-  <div bind:this={contentRef} class="meal-planner-content">
+  <div bind:this={contentRef} class="meal-planner-content" data-scroll-container>
     {#if isLoading}
       <div class="flex items-center justify-center p-8">
         <p class="text-muted-foreground">Loading meal planner...</p>
@@ -442,6 +442,13 @@
           {@const isConfirmed = menu?.menu.is_confirmed ?? false}
           {@const prevIsPast = index > 0 ? allDates[index - 1].isPast : true}
           {@const showSeparator = !isPast && prevIsPast}
+          {@const isToday = (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const targetDate = new Date(date);
+            targetDate.setHours(0, 0, 0, 0);
+            return targetDate.getTime() === today.getTime();
+          })()}
 
           {#if showSeparator}
             <!-- Separator between history and planned meals -->
@@ -453,16 +460,16 @@
           {#if isPast && menu}
             <!-- History item (read-only) -->
             <div
-              class="flex min-h-[48px] items-center gap-[2px] rounded-md border border-border bg-muted p-1.5 px-2 lg:p-2 lg:px-3 opacity-60"
+              class="flex min-h-[48px] items-center gap-[2px] rounded-md border border-border bg-muted p-1.5 px-2 lg:p-2 lg:px-3 {isToday ? 'today-highlight' : 'opacity-60'}"
             >
               <!-- Date -->
               <div class="flex w-16 lg:w-20 flex-shrink-0 flex-col">
-                <span class="text-xs lg:text-sm font-medium">{formatDateDisplay(date)}</span>
-                <span class="text-[10px] lg:text-xs text-muted-foreground">{formatDayName(date)}</span>
+                <span class="text-xs lg:text-sm font-medium {isToday ? 'text-today' : ''}">{formatDateDisplay(date)}</span>
+                <span class="text-[10px] lg:text-xs {isToday ? 'text-today' : 'text-muted-foreground'}">{formatDayName(date)}</span>
               </div>
 
               <!-- Dish name -->
-              <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs lg:text-sm">
+              <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs lg:text-sm {isToday ? 'text-today font-medium' : ''}">
                 {#if menu.dish}
                   {menu.dish.name}
                 {:else}
@@ -480,16 +487,16 @@
             </div>
           {:else if !isPast}
             <!-- Upcoming item (editable or confirmed) -->
-            <div class="flex min-h-[48px] items-center gap-[2px] rounded-md border border-border bg-muted p-1.5 px-2 lg:p-2 lg:px-3 {isConfirmed ? 'opacity-60' : 'transition-colors hover:border-input hover:bg-accent'}">
+            <div class="flex min-h-[48px] items-center gap-[2px] rounded-md border border-border bg-muted p-1.5 px-2 lg:p-2 lg:px-3 {isToday ? 'today-highlight' : (isConfirmed ? 'opacity-60' : 'transition-colors hover:border-input hover:bg-accent')}">
               <!-- Date -->
               <div class="flex w-16 lg:w-20 flex-shrink-0 flex-col">
-                <span class="text-xs lg:text-sm font-medium">{formatDateDisplay(date)}</span>
-                <span class="text-[10px] lg:text-xs text-muted-foreground">{formatDayName(date)}</span>
+                <span class="text-xs lg:text-sm font-medium {isToday ? 'text-today' : ''}">{formatDateDisplay(date)}</span>
+                <span class="text-[10px] lg:text-xs {isToday ? 'text-today' : 'text-muted-foreground'}">{formatDayName(date)}</span>
               </div>
 
               {#if isConfirmed && menu}
                 <!-- Confirmed: Plain text display (like history) -->
-                <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-left px-4 py-2">
+                <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-left px-4 py-2 {isToday ? 'text-today font-medium' : ''}">
                   {#if menu.dish}
                     {menu.dish.name}
                   {:else}
@@ -501,7 +508,7 @@
                 {#if isMobile}
                   <!-- Mobile: Bottom Sheet -->
                   <button
-                    class="w-full flex items-center justify-between px-4 py-2 text-sm text-left"
+                    class="w-full flex items-center justify-between px-4 py-2 text-sm text-left {isToday ? 'text-today font-medium' : ''}"
                     disabled={isSaving}
                     onclick={() => {
                       openDropdownDate = dateISO;
@@ -510,7 +517,7 @@
                     <span class="truncate">
                       {menu?.dish?.name || menu?.menu.dish_name || 'No dish planned'}
                     </span>
-                    <ChevronDown size={16} class="ml-auto flex-shrink-0 opacity-50" />
+                    <ChevronDown size={16} class="ml-auto flex-shrink-0 {isToday ? 'text-today' : 'opacity-50'}" />
                   </button>
                 {:else}
                   <!-- Desktop: Popover -->
@@ -523,7 +530,7 @@
                     <Popover.Trigger class="w-full">
                       <Button
                         variant="ghost"
-                        class="w-full justify-start"
+                        class="w-full justify-start {isToday ? 'text-today font-medium' : ''}"
                         disabled={isSaving}
                         role="combobox"
                         aria-expanded={isDropdownOpen}
@@ -531,7 +538,7 @@
                         <span class="truncate text-left">
                           {menu?.dish?.name || menu?.menu.dish_name || 'No dish planned'}
                         </span>
-                        <ChevronDown size={16} class="ml-auto flex-shrink-0 opacity-50" />
+                        <ChevronDown size={16} class="ml-auto flex-shrink-0 {isToday ? 'text-today' : 'opacity-50'}" />
                       </Button>
                     </Popover.Trigger>
                     <Popover.Content class="dish-selector-popover w-[450px] p-0" align="start">
@@ -880,5 +887,22 @@
     background-color: var(--bg-muted) !important;
     color: var(--text-secondary) !important;
     border-radius: var(--radius-md) !important;
+  }
+
+  /* Today highlight styles */
+  .text-today {
+    color: var(--accent-primary) !important;
+  }
+
+  .today-highlight {
+    opacity: 1 !important;
+    border-color: var(--accent-primary) !important;
+  }
+
+  /* Override button text color for today */
+  :global(.text-today button),
+  :global(button.text-today),
+  :global(button.text-today span) {
+    color: var(--accent-primary) !important;
   }
 </style>

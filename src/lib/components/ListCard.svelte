@@ -203,7 +203,7 @@
   <CardContent class="card-content">
 
     <!-- Items list -->
-    <div class="items-container">
+    <div class="items-container {totalCount === 0 ? 'no-items' : ''}" data-scroll-container>
       {#if uncheckedItems.length === 0 && checkedItems.length === 0}
         <!-- Empty state -->
         <div class="empty-state">
@@ -263,6 +263,7 @@
   @media (min-width: 1024px) {
     :global(.list-card) {
       width: 600px;
+      gap: var(--space-2) !important; /* Reduce gap between header and content */
 
       /* Semi-transparent background with frosted glass effect */
       background-color: rgba(26, 26, 26, 0.7) !important;
@@ -279,6 +280,7 @@
     :global(.list-card) {
       max-width: unset;
       border-radius: 0;
+      border: none !important;
       box-shadow: none;
 
       /* Grid layout - header (auto) + content (fill remaining) */
@@ -300,6 +302,7 @@
     /* Layout */
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
@@ -326,10 +329,6 @@
       /* Background and padding */
       background-color: var(--bg-primary);
       padding: var(--space-4) var(--space-3);
-
-      /* Visual separation */
-      border-bottom: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-sm);
 
       /* PREVENT SCROLLING ON HEADER - Modern CSS approach */
       touch-action: none; /* Prevents all touch gestures (pan, zoom) */
@@ -438,7 +437,16 @@
   /* Add item form */
   .add-item-form {
     /* Spacing */
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-1);
+  }
+
+  /* Desktop: full width to wrap to next line below header info */
+  @media (min-width: 1024px) {
+    .add-item-form {
+      width: 100%;
+      flex-basis: 100%;
+      order: 10; /* Ensure form appears after all header items */
+    }
   }
 
   /* Mobile: inside fixed header, full width to wrap to next line */
@@ -589,6 +597,13 @@
   @media (max-width: 1023px) {
     .items-container {
       margin: 0 calc(var(--space-3) * -1);
+    }
+
+    /* Prevent scrolling when there are no items */
+    .items-container.no-items {
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: auto;
+      touch-action: none;
     }
   }
 

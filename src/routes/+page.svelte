@@ -73,6 +73,10 @@
   // Reset trigger for hiding item actions on swipe
   let resetActionsTrigger = $state(0);
 
+  // Refs for scroll containers
+  let mobileViewRef = $state<HTMLDivElement | null>(null);
+  let mainContentRef = $state<HTMLElement | null>(null);
+
   // Check if user has seen swipe hint before
   const SWIPE_HINT_KEY = 'swipe-hint-seen';
 
@@ -211,6 +215,46 @@
     // Close meal planner modal if it's open when switching to meals view on mobile
     if (mode === 'meals') {
       isMealPlannerModalOpen = false;
+    }
+
+    // Scroll to top on mobile when switching views to ensure content is visible
+    if (browser && window.innerWidth < 1024) {
+      // Use multiple approaches to ensure scrolling happens
+      const scrollToTop = () => {
+        // Scroll main content to top
+        if (mainContentRef) {
+          mainContentRef.scrollTop = 0;
+          mainContentRef.scrollTo?.(0, 0);
+        }
+
+        // Find and scroll any nested scrollable containers to top
+        if (mobileViewRef) {
+          // Scroll the mobile view container itself
+          mobileViewRef.scrollTop = 0;
+          mobileViewRef.scrollTo?.(0, 0);
+
+          // Find all scrollable children and scroll them to top
+          const scrollableElements = mobileViewRef.querySelectorAll('.list-slide, .mobile-meals-view, [data-scroll-container], .items-container, .master-list-container');
+          scrollableElements.forEach((el) => {
+            if (el instanceof HTMLElement) {
+              el.scrollTop = 0;
+              el.scrollTo?.(0, 0);
+            }
+          });
+        }
+
+        // Also scroll window to ensure page is at top
+        window.scrollTo(0, 0);
+      };
+
+      // Execute immediately
+      scrollToTop();
+
+      // Execute again after a short delay to ensure DOM is fully updated
+      setTimeout(scrollToTop, 50);
+
+      // Execute one more time to be absolutely sure
+      setTimeout(scrollToTop, 150);
     }
   }
 
@@ -695,7 +739,7 @@
   />
 
   <!-- Main content -->
-  <main class="main-content">
+  <main bind:this={mainContentRef} class="main-content">
     <!-- Floating controls - Always visible on desktop -->
     <div class="desktop-floating-controls">
       <!-- Floating controls - Top Left (User Info & Dropdown) -->
@@ -885,7 +929,7 @@
       </div>
     {:else}
       <!-- Mobile: Three view modes -->
-      <div class="mobile-view">
+      <div bind:this={mobileViewRef} class="mobile-view">
         {#if viewMode === 'master'}
           <!-- Master list view - all unchecked items from all shopping lists -->
           <MasterList
