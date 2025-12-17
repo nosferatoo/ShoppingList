@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { createSupabaseBrowserClient } from '$lib/db/supabase';
+  import { getSupabaseContext } from '$lib/db/supabase.context.svelte';
+  import { authStore } from '$lib/stores/auth.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import type { LoginFormData } from '$lib/types';
+
+  // Get Supabase client from context (provided by +layout.svelte)
+  const supabase = getSupabaseContext();
 
   // State
   let email = $state('');
@@ -14,9 +16,6 @@
 
   // Derived state for form validation
   let isFormValid = $derived(email.length > 0 && password.length > 0);
-
-  // Supabase client
-  const supabase = createSupabaseBrowserClient();
 
   /**
    * Handle form submission
@@ -37,26 +36,18 @@
     isLoading = true;
 
     try {
-      // Attempt to sign in with Supabase Auth
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Use authStore to sign in (it will handle redirect)
+      const result = await authStore.signIn(supabase, { email, password });
 
-      if (signInError) {
+      if (!result.success && result.error) {
         // Handle authentication errors
-        if (signInError.message.includes('Invalid login credentials')) {
+        if (result.error.includes('Invalid login credentials')) {
           error = 'Invalid email or password';
         } else {
-          error = signInError.message;
+          error = result.error;
         }
-        return;
       }
-
-      if (data.session) {
-        // Successful login - redirect to main app
-        await goto('/', { replaceState: true });
-      }
+      // If successful, authStore.signIn handles the redirect
     } catch (err) {
       // Handle unexpected errors
       error = 'An unexpected error occurred. Please try again.';

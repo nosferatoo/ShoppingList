@@ -4,9 +4,9 @@
 import { createSupabaseBrowserClient } from '$lib/db/supabase';
 import type { LayoutLoad } from './$types';
 
-export const load: LayoutLoad = async ({ data, depends }) => {
-  // Create Supabase browser client
-  const supabase = createSupabaseBrowserClient();
+export const load: LayoutLoad = async ({ data, depends, fetch }) => {
+  // Create Supabase browser client with SvelteKit's fetch for proper SSR
+  const supabase = createSupabaseBrowserClient(fetch);
 
   // Tell SvelteKit to rerun this when invalidate('supabase:auth') is called
   depends('supabase:auth');

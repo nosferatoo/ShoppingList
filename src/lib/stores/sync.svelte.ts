@@ -4,6 +4,8 @@
 import { browser } from '$app/environment';
 import { sync, initSyncListeners, manualSync, clearCacheAndSync, subscribeToChanges, getLastSyncTime, type SyncResult } from '$lib/db/sync';
 import { db } from '$lib/db/local';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '$lib/types';
 
 // ============================================================================
 // STATE
@@ -17,6 +19,7 @@ interface SyncState {
   pendingCount: number;
   error: string | null;
   hasRemoteChanges: boolean;
+  supabase: SupabaseClient<Database> | null;
 }
 
 let state = $state<SyncState>({
@@ -26,7 +29,8 @@ let state = $state<SyncState>({
   lastSyncAt: null,
   pendingCount: 0,
   error: null,
-  hasRemoteChanges: false
+  hasRemoteChanges: false,
+  supabase: null
 });
 
 // Realtime unsubscribe function
@@ -80,11 +84,15 @@ export const syncStore = {
   /**
    * Initialize sync system
    * Sets up online/offline listeners and sync triggers
+   *
+   * @param userId - Current user's ID
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  async initialize(userId?: string): Promise<void> {
+  async initialize(userId: string, supabase: SupabaseClient<Database>): Promise<void> {
     if (!browser) return;
 
-    console.log('Initializing sync system...');
+    // Store supabase client
+    state.supabase = supabase;
 
     // Set up online/offline status listeners
     this.setupNetworkListeners();
@@ -94,18 +102,14 @@ export const syncStore = {
       this.handleSyncComplete(result);
     });
 
-    // Set up realtime subscriptions if user is authenticated
-    if (userId) {
-      this.setupRealtimeSubscriptions(userId);
-    }
+    // Set up realtime subscriptions
+    this.setupRealtimeSubscriptions(userId);
 
     // Update pending count
     await this.updatePendingCount();
 
     // Get last sync time
     await this.updateLastSyncTime();
-
-    console.log('Sync system initialized');
   },
 
   /**
@@ -119,14 +123,12 @@ export const syncStore = {
 
     // Listen for online event
     window.addEventListener('online', () => {
-      console.log('Network: back online');
       state.isOnline = true;
       state.error = null;
     });
 
     // Listen for offline event
     window.addEventListener('offline', () => {
-      console.log('Network: went offline');
       state.isOnline = false;
     });
   },
@@ -135,7 +137,7 @@ export const syncStore = {
    * Set up realtime subscriptions for lists and items
    */
   setupRealtimeSubscriptions(userId: string): void {
-    if (!browser) return;
+    if (!browser || !state.supabase) return;
 
     // Unsubscribe from previous subscription if exists
     if (realtimeUnsubscribe) {
@@ -143,12 +145,9 @@ export const syncStore = {
       realtimeUnsubscribe = null;
     }
 
-    console.log('Setting up realtime subscriptions...');
-
     // Subscribe to changes
-    realtimeUnsubscribe = subscribeToChanges(userId, () => {
+    realtimeUnsubscribe = subscribeToChanges(state.supabase, userId, () => {
       // Remote change detected
-      console.log('Remote change detected via realtime');
       state.hasRemoteChanges = true;
 
       // Trigger a callback or event that UI can listen to
@@ -156,8 +155,6 @@ export const syncStore = {
         window.dispatchEvent(new CustomEvent('remote-change'));
       }
     });
-
-    console.log('Realtime subscriptions active');
   },
 
   /**
@@ -165,7 +162,6 @@ export const syncStore = {
    */
   unsubscribeRealtime(): void {
     if (realtimeUnsubscribe) {
-      console.log('Unsubscribing from realtime...');
       realtimeUnsubscribe();
       realtimeUnsubscribe = null;
     }
@@ -176,7 +172,6 @@ export const syncStore = {
    */
   async performSync(): Promise<SyncResult | null> {
     if (state.isSyncing) {
-      console.log('Sync already in progress, skipping...');
       return null;
     }
 
@@ -185,12 +180,16 @@ export const syncStore = {
       throw new Error('Cannot sync while offline');
     }
 
+    if (!state.supabase) {
+      state.error = 'Supabase client not initialized';
+      throw new Error('Supabase client not initialized');
+    }
+
     state.isSyncing = true;
     state.error = null;
 
     try {
-      console.log('Starting manual sync...');
-      const result = await manualSync();
+      const result = await manualSync(state.supabase);
       this.handleSyncComplete(result);
       return result;
     } catch (error) {
@@ -208,7 +207,6 @@ export const syncStore = {
    */
   async performClearCacheAndSync(): Promise<SyncResult | null> {
     if (state.isSyncing || state.isClearingCache) {
-      console.log('Operation already in progress, skipping...');
       return null;
     }
 
@@ -217,12 +215,16 @@ export const syncStore = {
       throw new Error('Cannot sync while offline');
     }
 
+    if (!state.supabase) {
+      state.error = 'Supabase client not initialized';
+      throw new Error('Supabase client not initialized');
+    }
+
     state.isClearingCache = true;
     state.error = null;
 
     try {
-      console.log('Starting clear cache and sync...');
-      const result = await clearCacheAndSync();
+      const result = await clearCacheAndSync(state.supabase);
       this.handleSyncComplete(result);
       return result;
     } catch (error) {
@@ -239,8 +241,6 @@ export const syncStore = {
    * Handle sync completion
    */
   handleSyncComplete(result: SyncResult): void {
-    console.log('Sync complete:', result);
-
     // Update state
     state.hasRemoteChanges = result.hasRemoteChanges;
 
@@ -297,6 +297,7 @@ export const syncStore = {
    */
   cleanup(): void {
     this.unsubscribeRealtime();
+    state.supabase = null;
   }
 };
 

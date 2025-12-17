@@ -3,9 +3,9 @@
 // Always performs full sync for simplicity and reliability
 
 import { browser } from '$app/environment';
-import { createSupabaseBrowserClient } from './supabase';
 import { db } from './local';
-import type { SyncItemsResponse, UserListsWithItemsResponse } from '$lib/types';
+import type { SyncItemsResponse, UserListsWithItemsResponse, Database } from '$lib/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ============================================================================
 // TYPES
@@ -45,8 +45,10 @@ export async function setLastSyncTime(time: string): Promise<void> {
  * Main synchronization function
  * 1. Pushes local pending changes to server (with server-side LWW conflict resolution)
  * 2. Performs full sync from server (replaces local state with server state)
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function sync(): Promise<SyncResult> {
+export async function sync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
   const result: SyncResult = {
     pushed: 0,
     pulled: 0,
@@ -56,13 +58,13 @@ export async function sync(): Promise<SyncResult> {
 
   try {
     // 1. Push local changes first
-    result.pushed = await pushPendingChanges();
+    result.pushed = await pushPendingChanges(supabase);
 
     // 2. Push pending check logs
-    await pushPendingCheckLogs();
+    await pushPendingCheckLogs(supabase);
 
     // 3. Pull remote changes
-    const pullResult = await pullRemoteChanges();
+    const pullResult = await pullRemoteChanges(supabase);
     result.pulled = pullResult.count;
     result.hasRemoteChanges = pullResult.hasChanges;
 
@@ -80,9 +82,10 @@ export async function sync(): Promise<SyncResult> {
 /**
  * Push pending local changes to the server
  * Uses the sync_items RPC function for batch updates with LWW
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function pushPendingChanges(): Promise<number> {
-  const supabase = createSupabaseBrowserClient();
+async function pushPendingChanges(supabase: SupabaseClient<Database>): Promise<number> {
 
   // Get all pending items
   const pendingItems = await db.items
@@ -144,9 +147,10 @@ async function pushPendingChanges(): Promise<number> {
 /**
  * Push pending check logs to the server
  * Check logs are append-only, so no conflict resolution needed
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function pushPendingCheckLogs(): Promise<number> {
-  const supabase = createSupabaseBrowserClient();
+async function pushPendingCheckLogs(supabase: SupabaseClient<Database>): Promise<number> {
 
   // Get all pending check logs
   const pendingLogs = await db.getPendingCheckLogs();
@@ -193,9 +197,11 @@ async function pushPendingCheckLogs(): Promise<number> {
 /**
  * Pull remote changes from server
  * Always performs full sync for simplicity and reliability
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function pullRemoteChanges(): Promise<{ count: number; hasChanges: boolean }> {
-  return await fullSync();
+async function pullRemoteChanges(supabase: SupabaseClient<Database>): Promise<{ count: number; hasChanges: boolean }> {
+  return await fullSync(supabase);
 }
 
 // ============================================================================
@@ -205,10 +211,10 @@ async function pullRemoteChanges(): Promise<{ count: number; hasChanges: boolean
 /**
  * Perform full sync on first load
  * Clears local database and loads all accessible lists and items
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function fullSync(): Promise<{ count: number; hasChanges: boolean }> {
-  const supabase = createSupabaseBrowserClient();
-
+async function fullSync(supabase: SupabaseClient<Database>): Promise<{ count: number; hasChanges: boolean }> {
   // Get authenticated user
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -244,7 +250,7 @@ async function fullSync(): Promise<{ count: number; hasChanges: boolean }> {
         position: entry.position,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as any);
+      });
 
       // Store items
       for (const item of entry.items) {
@@ -314,35 +320,34 @@ export function initSyncListeners(onSyncComplete?: (result: SyncResult) => void)
 /**
  * Manually trigger sync (called from settings menu)
  * Throws error if offline
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function manualSync(): Promise<SyncResult> {
+export async function manualSync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
   if (!navigator.onLine) {
     throw new Error('Cannot sync while offline');
   }
-  return await sync();
+  return await sync(supabase);
 }
 
 /**
  * Clear local cache and perform full sync
  * Used when user wants to force a complete refresh from server
+ *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function clearCacheAndSync(): Promise<SyncResult> {
+export async function clearCacheAndSync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
   if (!navigator.onLine) {
     throw new Error('Cannot sync while offline');
   }
 
   try {
-    console.log('Clearing local cache...');
-
     // Step 1: Clear all IndexedDB data atomically
     await db.clearAll();
 
-    console.log('Cache cleared, performing full sync...');
-
     // Step 2: Perform full sync (which fetches all data from server)
-    const result = await sync();
+    const result = await sync(supabase);
 
-    console.log('Clear cache and sync completed:', result);
     return result;
   } catch (error) {
     console.error('Clear cache and sync failed:', error);
@@ -358,15 +363,16 @@ export async function clearCacheAndSync(): Promise<SyncResult> {
  * Subscribe to real-time changes from Supabase
  * Updates local database when other users make changes
  *
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  * @param userId - Current user's ID
  * @param onRemoteChange - Callback when remote change detected
  * @returns Unsubscribe function
  */
 export function subscribeToChanges(
+  supabase: SupabaseClient<Database>,
   userId: string,
   onRemoteChange: () => void
 ): () => void {
-  const supabase = createSupabaseBrowserClient();
 
   // Subscribe to items changes
   const itemsChannel = supabase

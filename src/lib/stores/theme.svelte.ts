@@ -1,5 +1,7 @@
 import { browser } from '$app/environment';
 import { saveUserPreferences, loadUserPreferences } from '$lib/db/preferences';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '$lib/types';
 
 export type ThemeColor = 'orange' | 'teal' | 'blue' | 'purple';
 
@@ -10,6 +12,7 @@ class ThemeStore {
 
   // Current user ID (set when user logs in)
   private userId: string | null = null;
+  private supabase: SupabaseClient<Database> | null = null;
 
   constructor() {
     if (browser) {
@@ -63,13 +66,17 @@ class ThemeStore {
 
   /**
    * Set user ID and load their preferences from database
+   *
+   * @param userId - Current user's ID (null if logged out)
+   * @param supabase - Supabase client from +layout.ts (null if logged out)
    */
-  async setUser(userId: string | null) {
+  async setUser(userId: string | null, supabase: SupabaseClient<Database> | null) {
     this.userId = userId;
+    this.supabase = supabase;
 
-    if (userId) {
+    if (userId && supabase) {
       try {
-        const preferences = await loadUserPreferences(userId);
+        const preferences = await loadUserPreferences(userId, supabase);
         if (preferences) {
           // Load from database (skip syncing back to database)
           this.color = preferences.theme_color;
@@ -86,12 +93,12 @@ class ThemeStore {
    * Sync theme to database
    */
   private async syncToDatabase() {
-    if (!this.userId) return;
+    if (!this.userId || !this.supabase) return;
 
     try {
       await saveUserPreferences(this.userId, {
         theme_color: this.color
-      });
+      }, this.supabase);
     } catch (error) {
       console.error('Failed to sync theme to database:', error);
     }

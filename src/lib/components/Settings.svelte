@@ -110,16 +110,13 @@
   // Handle logout
   async function handleLogout(e: MouseEvent) {
     e.stopPropagation(); // Prevent backdrop click
-    console.log('Logout clicked');
 
     try {
       await authStore.signOut();
-      console.log('Sign out completed');
       onClose?.();
 
       // Fallback redirect if auth listener doesn't handle it
       setTimeout(() => {
-        console.log('Forcing redirect to /login');
         window.location.href = '/login';
       }, 1000);
     } catch (error) {

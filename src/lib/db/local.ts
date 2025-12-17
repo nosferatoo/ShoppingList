@@ -42,7 +42,7 @@ export interface LocalItem {
  * Stores user-specific list preferences (order, etc.)
  */
 export interface LocalUserListSettings {
-  id: number;
+  id?: number; // Auto-increment primary key
   user_id: string;
   list_id: number;
   position: number;
@@ -86,7 +86,7 @@ export class ListsDatabase extends Dexie {
   // Table declarations with TypeScript types
   lists!: Table<LocalList, number>;
   items!: Table<LocalItem, number>;
-  userListSettings!: Table<LocalUserListSettings, number>;
+  userListSettings!: Table<LocalUserListSettings, [string, number]>;
   syncMeta!: Table<SyncMeta, string>;
   checkLogs!: Table<LocalCheckLog, number>;
 
@@ -109,35 +109,34 @@ export class ListsDatabase extends Dexie {
       syncMeta: 'key'
     });
 
-    // Version 3 schema - fix userListSettings to use auto-increment with proper migration
+    // Version 3 schema - keep consistent with v1/v2 (no primary key type change)
     this.version(3).stores({
       lists: 'id, owner_id, updated_at',
       items: 'id, list_id, updated_at, _pending',
-      userListSettings: '++id, [user_id+list_id]',
+      userListSettings: 'id, [user_id+list_id]',
       syncMeta: 'key'
-    }).upgrade(async (trans) => {
-      // Migrate userListSettings data
-      try {
-        const oldSettings = await trans.table('userListSettings').toArray();
-
-        // Clear the table
-        await trans.table('userListSettings').clear();
-
-        // Re-add all settings (Dexie will auto-generate new IDs)
-        for (const setting of oldSettings) {
-          // Remove the old id field
-          const { id, ...settingWithoutId } = setting;
-          await trans.table('userListSettings').add(settingWithoutId);
-        }
-      } catch (error) {
-        console.warn('Migration from v2 to v3 failed, clearing userListSettings:', error);
-        // If migration fails, just clear the table - data will be resynced
-        await trans.table('userListSettings').clear();
-      }
     });
 
     // Version 4 schema - add checkLogs table for statistics
     this.version(4).stores({
+      lists: 'id, owner_id, updated_at',
+      items: 'id, list_id, updated_at, _pending',
+      userListSettings: 'id, [user_id+list_id]',
+      syncMeta: 'key',
+      checkLogs: '++id, user_id, checked_at, _pending'
+    });
+
+    // Version 5 schema - revert to v4 schema (no breaking changes)
+    this.version(5).stores({
+      lists: 'id, owner_id, updated_at',
+      items: 'id, list_id, updated_at, _pending',
+      userListSettings: 'id, [user_id+list_id]',
+      syncMeta: 'key',
+      checkLogs: '++id, user_id, checked_at, _pending'
+    });
+
+    // Version 6 schema - add unique constraint on [user_id+list_id]
+    this.version(6).stores({
       lists: 'id, owner_id, updated_at',
       items: 'id, list_id, updated_at, _pending',
       userListSettings: '++id, [user_id+list_id]',
@@ -304,7 +303,6 @@ export async function initializeDatabase(): Promise<void> {
   }
 
   // Database is empty - will be populated on first sync
-  console.log('Local database initialized');
 }
 
 /**
@@ -312,5 +310,4 @@ export async function initializeDatabase(): Promise<void> {
  */
 export async function deleteDatabase(): Promise<void> {
   await db.delete();
-  console.log('Local database deleted');
 }

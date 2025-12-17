@@ -8,9 +8,21 @@ import type { Database } from '$lib/types';
 /**
  * Creates a Supabase client for browser-side usage
  * Automatically handles cookie management in the browser
+ *
+ * @param customFetch - Optional custom fetch function (e.g., SvelteKit's fetch in load functions)
  */
-export function createSupabaseBrowserClient() {
-  return createBrowserClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
+export function createSupabaseBrowserClient(customFetch?: typeof fetch) {
+  return createBrowserClient<Database>(
+    PUBLIC_SUPABASE_URL,
+    PUBLIC_SUPABASE_ANON_KEY,
+    customFetch
+      ? {
+          global: {
+            fetch: customFetch
+          }
+        }
+      : undefined
+  );
 }
 
 /**
@@ -59,11 +71,20 @@ export function createSupabaseServerClient(
 }
 
 /**
- * Legacy export for backwards compatibility
- * Creates appropriate client based on environment (browser vs server)
+ * @deprecated DEPRECATED: Do not use this export. Use createSupabaseBrowserClient() with fetch parameter instead.
  *
- * @deprecated Use createSupabaseBrowserClient() or createSupabaseServerClient() instead
+ * This legacy export creates a client without SvelteKit's custom fetch, causing warnings about window.fetch usage.
+ *
+ * Instead of:
+ *   import { supabase } from '$lib/db/supabase';
+ *
+ * Use:
+ *   import { getSupabaseContext } from '$lib/db/supabase.context.svelte';
+ *   const supabase = getSupabaseContext();
+ *
+ * Or if you're in a load function:
+ *   const supabase = createSupabaseBrowserClient(fetch);
  */
-export const supabase = isBrowser()
-  ? createBrowserClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY)
-  : undefined as any; // Server-side should use createSupabaseServerClient with cookies
+// export const supabase = isBrowser()
+//   ? createBrowserClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY)
+//   : undefined as any;

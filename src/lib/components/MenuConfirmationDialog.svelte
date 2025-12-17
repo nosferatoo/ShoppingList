@@ -115,7 +115,6 @@
       }
 
       const result = data as ConfirmMenuResponse;
-      console.log('Menu confirmed:', result);
 
       // Reset state
       excludedItemIds = new Set();

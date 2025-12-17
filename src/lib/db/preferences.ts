@@ -1,8 +1,9 @@
 // User preferences management
 // Handles saving and loading user preferences (theme, etc.) from Supabase
 
-import { createSupabaseBrowserClient } from '$lib/db/supabase';
 import type { ThemeColor } from '$lib/stores/theme.svelte';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '$lib/types';
 
 export interface UserPreferences {
   theme_color: ThemeColor;
@@ -10,9 +11,14 @@ export interface UserPreferences {
 
 /**
  * Load user preferences from Supabase
+ *
+ * @param userId - Current user's ID
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function loadUserPreferences(userId: string): Promise<UserPreferences | null> {
-  const supabase = createSupabaseBrowserClient();
+export async function loadUserPreferences(
+  userId: string,
+  supabase: SupabaseClient<Database>
+): Promise<UserPreferences | null> {
 
   try {
     // Use maybeSingle() instead of single() to handle "no rows" gracefully
@@ -37,12 +43,16 @@ export async function loadUserPreferences(userId: string): Promise<UserPreferenc
 
 /**
  * Save user preferences to Supabase
+ *
+ * @param userId - Current user's ID
+ * @param preferences - Preferences to save
+ * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
 export async function saveUserPreferences(
   userId: string,
-  preferences: UserPreferences
+  preferences: UserPreferences,
+  supabase: SupabaseClient<Database>
 ): Promise<void> {
-  const supabase = createSupabaseBrowserClient();
 
   try {
     const { error } = await supabase
@@ -61,8 +71,6 @@ export async function saveUserPreferences(
     if (error) {
       throw error;
     }
-
-    console.log('User preferences saved successfully');
   } catch (error) {
     console.error('Failed to save user preferences:', error);
     throw error;

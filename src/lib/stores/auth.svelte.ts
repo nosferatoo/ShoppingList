@@ -2,10 +2,9 @@
 // Handles user session, login, logout, and auth state
 
 import { goto, invalidate } from '$app/navigation';
-import { createSupabaseBrowserClient } from '$lib/db/supabase';
 import { db } from '$lib/db/local';
-import type { User, Session } from '@supabase/supabase-js';
-import type { LoginFormData } from '$lib/types';
+import type { User, Session, SupabaseClient } from '@supabase/supabase-js';
+import type { LoginFormData, Database } from '$lib/types';
 
 // ============================================================================
 // STATE
@@ -34,12 +33,6 @@ let state = $state<AuthState>({
 let isAuthenticated = $derived(state.session !== null && state.user !== null);
 let userId = $derived(state.user?.id ?? null);
 let userEmail = $derived(state.user?.email ?? null);
-
-// ============================================================================
-// SUPABASE CLIENT
-// ============================================================================
-
-const supabase = createSupabaseBrowserClient();
 
 // ============================================================================
 // AUTH STORE
@@ -94,8 +87,11 @@ export const authStore = {
    * Initialize auth state from session
    * Call this once on app load, or when session changes
    * NOTE: Always verifies user with getUser() for security, even if initialSession is provided
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
+   * @param initialSession - Initial session from server (can be null)
    */
-  async initialize(initialSession: Session | null): Promise<void> {
+  async initialize(supabase: SupabaseClient<Database>, initialSession: Session | null): Promise<void> {
     // If already initialized, just update the state without re-setting up listeners
     const needsListenerSetup = !state.isInitialized;
 
@@ -120,7 +116,7 @@ export const authStore = {
 
       // Set up auth state change listener only on first initialization
       if (needsListenerSetup) {
-        this.setupAuthListener();
+        this.setupAuthListener(supabase);
         state.isInitialized = true;
       }
     } catch (error) {
@@ -135,8 +131,10 @@ export const authStore = {
    * Set up listener for auth state changes
    * NOTE: ONLY handles SIGNED_OUT events. SIGNED_IN is handled during login flow.
    * Visibility-based auth checks are disabled to prevent UI freezing.
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  setupAuthListener(): void {
+  setupAuthListener(supabase: SupabaseClient<Database>): void {
     supabase.auth.onAuthStateChange(async (event, session) => {
       // ONLY handle sign-out - ignore all other events to prevent UI issues
       if (event === 'SIGNED_OUT') {
@@ -155,8 +153,11 @@ export const authStore = {
 
   /**
    * Sign in with email and password
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
+   * @param credentials - Login credentials (email and password)
    */
-  async signIn(credentials: LoginFormData): Promise<{ success: boolean; error?: string }> {
+  async signIn(supabase: SupabaseClient<Database>, credentials: LoginFormData): Promise<{ success: boolean; error?: string }> {
     state.isLoading = true;
     state.error = null;
 
@@ -197,8 +198,10 @@ export const authStore = {
 
   /**
    * Sign out current user
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  async signOut(): Promise<void> {
+  async signOut(supabase: SupabaseClient<Database>): Promise<void> {
     state.isLoading = true;
     state.error = null;
 
@@ -239,8 +242,10 @@ export const authStore = {
 
   /**
    * Check if user session is valid
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  async checkSession(): Promise<boolean> {
+  async checkSession(supabase: SupabaseClient<Database>): Promise<boolean> {
     try {
       const {
         data: { user }
@@ -267,8 +272,10 @@ export const authStore = {
 
   /**
    * Refresh the current session
+   *
+   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  async refreshSession(): Promise<void> {
+  async refreshSession(supabase: SupabaseClient<Database>): Promise<void> {
     try {
       const {
         data: { session },

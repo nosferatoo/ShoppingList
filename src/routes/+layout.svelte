@@ -5,6 +5,7 @@
   import { syncStore } from '$lib/stores/sync.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
   import { registerServiceWorker, captureInstallPrompt } from '$lib/pwa/serviceWorkerHelper';
+  import { setSupabaseContext } from '$lib/db/supabase.context.svelte';
   import { Toaster } from '$lib/components/ui/sonner';
   import '../app.css';
 
@@ -19,12 +20,16 @@
 
   let { children, data }: Props = $props();
 
+  // Set Supabase context for child components
+  // This ensures all components use the properly-configured client from +layout.ts
+  setSupabaseContext(data.supabase);
+
   // Watch for session changes and update auth store
   $effect(() => {
     // When session changes (e.g., after login/logout), update the auth store
     if (data.session) {
       // Force re-initialization by updating the state even if already initialized
-      authStore.initialize(data.session).catch((error) => {
+      authStore.initialize(data.supabase, data.session).catch((error) => {
         console.error('Auth initialization failed:', error);
       });
     }
@@ -56,10 +61,10 @@
         await invalidate('supabase:auth');
 
         // Initialize theme with user preferences
-        await themeStore.setUser(session.user.id);
+        await themeStore.setUser(session.user.id, data.supabase);
 
         // Initialize sync system
-        await syncStore.initialize(session.user.id);
+        await syncStore.initialize(session.user.id, data.supabase);
 
         // Perform initial sync
         try {
@@ -71,7 +76,7 @@
         // User signed out, cleanup
         currentUserId = null;
         await invalidate('supabase:auth');
-        await themeStore.setUser(null);
+        await themeStore.setUser(null, null);
         syncStore.cleanup();
       }
       // Ignore all other events (TOKEN_REFRESHED, etc.) to prevent UI interference
@@ -84,11 +89,11 @@
           if (user) {
             currentUserId = user.id;
             // Initialize theme with user preferences
-            themeStore.setUser(user.id).catch((error) => {
+            themeStore.setUser(user.id, data.supabase).catch((error) => {
               console.error('Theme initialization failed:', error);
             });
             // Initialize sync
-            syncStore.initialize(user.id).then(() => {
+            syncStore.initialize(user.id, data.supabase).then(() => {
               syncStore.performSync().catch((error) => {
                 console.error('Initial sync failed:', error);
               });

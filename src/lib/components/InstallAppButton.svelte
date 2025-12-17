@@ -20,19 +20,16 @@
   onMount(() => {
     // Don't show if already installed
     if (isInstalled()) {
-      console.log('[PWA] App already installed');
       return;
     }
 
     // Listen for install prompt available
     const handleInstallAvailable = () => {
-      console.log('[PWA] Install prompt available');
       showButton = true;
     };
 
     // Listen for app installed
     const handleInstalled = () => {
-      console.log('[PWA] App installed');
       showButton = false;
     };
 
@@ -52,10 +49,8 @@
       const accepted = await showInstallPrompt();
 
       if (accepted) {
-        console.log('[PWA] User accepted install');
         // Button will hide automatically via 'pwa-installed' event
       } else {
-        console.log('[PWA] User dismissed install');
         // Keep button visible for later
       }
     } catch (error) {

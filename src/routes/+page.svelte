@@ -323,7 +323,7 @@
         ...list,
         items: list.items.map(item =>
           item.id === itemId
-            ? { ...item, is_checked: newCheckedState, updated_at: new Date().toISOString() }
+            ? { ...item, is_checked: newCheckedState, quantity: newCheckedState ? null : item.quantity, updated_at: new Date().toISOString() }
             : item
         )
       }));
@@ -610,8 +610,6 @@
 
       // Update local state
       listsData = listsWithItems;
-
-      console.log('Loaded lists from IndexedDB:', listsWithItems.length);
     } catch (error) {
       console.error('Failed to load lists from IndexedDB:', error);
     }
@@ -622,16 +620,13 @@
     if (!browser) return;
 
     const handleRemoteChange = () => {
-      console.log('Remote change detected, reloading data...');
       loadListsFromIndexedDB();
     };
 
     const handleSyncComplete = (event: Event) => {
       const syncEvent = event as CustomEvent<SyncResult>;
-      console.log('Sync complete:', syncEvent.detail);
 
       // Always reload (handles both normal sync and clear cache)
-      console.log('Reloading lists from IndexedDB...');
       loadListsFromIndexedDB();
     };
 

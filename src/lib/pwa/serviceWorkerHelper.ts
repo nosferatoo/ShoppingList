@@ -42,35 +42,26 @@ let state: ServiceWorkerState = {
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!state.isSupported) {
-    console.log('[PWA] Service workers not supported');
     return null;
   }
 
   // Skip service worker registration in development
   // Service worker only works properly in production build
   if (import.meta.env.DEV) {
-    console.log('[PWA] Skipping service worker registration in development mode');
     return null;
   }
 
   try {
-    console.log('[PWA] Registering service worker...');
-
-    const registration = await navigator.serviceWorker.register('/service-worker.js', {
-      type: 'module'
-    });
+    const registration = await navigator.serviceWorker.register('/service-worker.js');
 
     state.isRegistered = true;
     state.registration = registration;
-
-    console.log('[PWA] Service worker registered:', registration.scope);
 
     // Check for updates
     setupUpdateHandler(registration);
 
     // Listen for controller change (new SW activated)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[PWA] Service worker controller changed');
       // Optionally reload the page to use the new service worker
       // window.location.reload();
     });
@@ -93,7 +84,6 @@ export async function unregisterServiceWorker(): Promise<boolean> {
 
   try {
     const result = await state.registration.unregister();
-    console.log('[PWA] Service worker unregistered:', result);
     state.isRegistered = false;
     state.registration = null;
     return result;
@@ -117,7 +107,6 @@ function setupUpdateHandler(registration: ServiceWorkerRegistration): void {
   // Check for updates periodically (every hour)
   setInterval(
     () => {
-      console.log('[PWA] Checking for service worker updates...');
       registration.update();
     },
     60 * 60 * 1000
@@ -129,14 +118,9 @@ function setupUpdateHandler(registration: ServiceWorkerRegistration): void {
 
     if (!newWorker) return;
 
-    console.log('[PWA] New service worker found, installing...');
-
     newWorker.addEventListener('statechange', () => {
-      console.log('[PWA] Service worker state:', newWorker.state);
-
       if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
         // New service worker installed and waiting to activate
-        console.log('[PWA] New service worker installed, update available');
         state.isUpdateAvailable = true;
 
         // Dispatch event so UI can show update notification
@@ -152,11 +136,8 @@ function setupUpdateHandler(registration: ServiceWorkerRegistration): void {
  */
 export async function skipWaitingAndUpdate(): Promise<void> {
   if (!state.registration || !state.registration.waiting) {
-    console.log('[PWA] No service worker waiting to activate');
     return;
   }
-
-  console.log('[PWA] Activating new service worker...');
 
   // Tell the waiting service worker to skip waiting
   state.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -199,18 +180,43 @@ export async function sendMessageToServiceWorker(message: any): Promise<void> {
  */
 export async function clearAllCaches(): Promise<void> {
   try {
-    console.log('[PWA] Clearing all caches...');
     const cacheNames = await caches.keys();
 
     await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
-
-    console.log('[PWA] All caches cleared');
 
     // Also tell service worker to clear its caches
     await sendMessageToServiceWorker({ type: 'CLEAR_CACHE' });
   } catch (error) {
     console.error('[PWA] Failed to clear caches:', error);
   }
+}
+
+/**
+ * Unregister ALL service workers and clear ALL caches
+ * Use this to fix service worker errors during development
+ *
+ * **NUCLEAR OPTION** - Only use when service workers are causing issues
+ */
+export async function nukeCacheAndServiceWorkers(): Promise<void> {
+  try {
+    // 1. Unregister all service workers
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((reg) => reg.unregister()));
+
+    // 2. Clear all caches
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+
+    // 3. Reload page
+    window.location.reload();
+  } catch (error) {
+    console.error('[PWA] ❌ Failed to nuke cache:', error);
+  }
+}
+
+// Expose cleanup utility to window for easy console access during development
+if (import.meta.env.DEV && browser) {
+  (window as any).__nukePWA = nukeCacheAndServiceWorkers;
 }
 
 // ============================================================================
@@ -237,7 +243,6 @@ export async function registerBackgroundSync(tag: string): Promise<void> {
 
   try {
     await (state.registration as any).sync.register(tag);
-    console.log('[PWA] Background sync registered:', tag);
   } catch (error) {
     console.error('[PWA] Failed to register background sync:', error);
   }
@@ -251,7 +256,6 @@ export function onBackgroundSync(callback: (tag: string) => void): void {
 
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'BACKGROUND_SYNC') {
-      console.log('[PWA] Background sync message received:', event.data.tag);
       callback(event.data.tag);
     }
   });
@@ -277,15 +281,12 @@ export function captureInstallPrompt(): void {
     // Stash the event so it can be triggered later
     deferredPrompt = e;
 
-    console.log('[PWA] Install prompt available');
-
     // Dispatch event so UI can show install button
     window.dispatchEvent(new CustomEvent('pwa-install-available'));
   });
 
   // Listen for app installed event
   window.addEventListener('appinstalled', () => {
-    console.log('[PWA] App installed');
     deferredPrompt = null;
 
     // Dispatch event so UI can hide install button
@@ -299,7 +300,6 @@ export function captureInstallPrompt(): void {
  */
 export async function showInstallPrompt(): Promise<boolean> {
   if (!deferredPrompt) {
-    console.log('[PWA] No install prompt available');
     return false;
   }
 
@@ -308,8 +308,6 @@ export async function showInstallPrompt(): Promise<boolean> {
 
   // Wait for the user to respond to the prompt
   const { outcome } = await deferredPrompt.userChoice;
-
-  console.log('[PWA] User choice:', outcome);
 
   // Clear the deferred prompt
   deferredPrompt = null;

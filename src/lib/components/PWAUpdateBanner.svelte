@@ -18,7 +18,6 @@
   onMount(() => {
     // Listen for service worker update available event
     const handleUpdateAvailable = () => {
-      console.log('[PWA] Update available, showing banner');
       showUpdateBanner = true;
     };
 
@@ -30,7 +29,6 @@
   });
 
   async function handleUpdate() {
-    console.log('[PWA] User clicked update, reloading...');
     await skipWaitingAndUpdate();
     // Page will reload automatically
   }
