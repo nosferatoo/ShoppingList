@@ -721,8 +721,8 @@
         <!-- Sync Button (Split Button with shadcn dropdown) -->
         <div class="sync-button-container">
           <!-- Main Sync Button -->
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             class="sync-button-floating sync-button-main {syncStore.isSyncing || syncStore.isClearingCache ? 'syncing' : syncStore.isOnline && !syncStore.isSyncing && !syncStore.isClearingCache ? 'synced' : !syncStore.isOnline ? 'offline' : ''}"
             onclick={handleSync}
             disabled={!syncStore.isOnline || syncStore.isSyncing || syncStore.isClearingCache}
@@ -756,7 +756,7 @@
                 {/if}
               </span>
             </div>
-          </button>
+          </Button>
 
           <!-- Dropdown Menu -->
           <DropdownMenu.Root>
@@ -783,8 +783,8 @@
         </div>
 
         <!-- Edit Lists Button -->
-        <button
-          type="button"
+        <Button
+          variant="ghost"
           class="action-button-floating edit-lists-button"
           onclick={handleEditLists}
           aria-label="Edit lists"
@@ -792,13 +792,13 @@
         >
           <ListPlus size={18} />
           <span class="button-text">Edit lists</span>
-        </button>
+        </Button>
 
         <!-- Meals Button (Desktop only, Split Button with Dropdown) -->
         <div class="meals-button-container hidden lg:block">
           <!-- Main Meals Button -->
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             class="action-button-floating meals-button-main"
             onclick={handleMealPlannerModalOpen}
             aria-label="Meal planner"
@@ -806,7 +806,7 @@
           >
             <UtensilsCrossed size={18} />
             <span class="button-text">Meals</span>
-          </button>
+          </Button>
 
           <!-- Dropdown Menu -->
           <DropdownMenu.Root bind:open={isMealsDropdownOpen}>
@@ -832,8 +832,8 @@
         <!-- Theme Button with Dropdown -->
         <div class="theme-button-container">
           <!-- Main Theme Button -->
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             class="action-button-floating theme-button-main"
             onclick={() => isThemeDropdownOpen = !isThemeDropdownOpen}
             aria-label="Change theme"
@@ -841,7 +841,7 @@
           >
             <Palette size={18} />
             <span class="button-text">Theme</span>
-          </button>
+          </Button>
 
           <!-- Dropdown Menu -->
           <DropdownMenu.Root bind:open={isThemeDropdownOpen}>
