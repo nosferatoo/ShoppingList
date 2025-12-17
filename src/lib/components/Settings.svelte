@@ -708,6 +708,25 @@
                 border-color var(--transition-fast);
   }
 
+  /* Override shadcn Button defaults for sync button */
+  :global(button.sync-button) {
+    all: unset !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: var(--space-3) !important;
+    padding: var(--space-3) var(--space-4) !important;
+    height: 64px !important;
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    cursor: pointer !important;
+    font-family: var(--font-body) !important;
+    font-size: var(--text-base) !important;
+    font-weight: var(--font-medium) !important;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
+  }
+
   .sync-button-main {
     flex: 1;
     min-width: 0;
@@ -980,6 +999,25 @@
     /* Transition */
     transition: background-color var(--transition-fast),
                 border-color var(--transition-fast);
+  }
+
+  /* Override shadcn Button defaults for theme button */
+  :global(button.theme-button) {
+    all: unset !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: var(--space-3) !important;
+    padding: var(--space-3) var(--space-4) !important;
+    height: 64px !important;
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    cursor: pointer !important;
+    font-family: var(--font-body) !important;
+    font-size: var(--text-base) !important;
+    font-weight: var(--font-medium) !important;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
   }
 
   .theme-button-main {
