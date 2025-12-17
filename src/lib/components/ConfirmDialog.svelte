@@ -19,6 +19,7 @@
     confirmText?: string;
     cancelText?: string;
     variant?: 'danger' | 'warning' | 'info';
+    highZIndex?: boolean; // Use higher z-index for displaying over modals
     onConfirm?: () => void;
     onCancel?: () => void;
   }
@@ -32,6 +33,7 @@
     confirmText = 'Confirm',
     cancelText = 'Cancel',
     variant = 'danger',
+    highZIndex = false,
     onConfirm,
     onCancel
   }: Props = $props();
@@ -61,7 +63,7 @@
 </script>
 
 <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-  <DialogContent class="max-w-md" showCloseButton={false}>
+  <DialogContent class="max-w-md {highZIndex ? 'confirm-dialog-high-z' : ''}" showCloseButton={false}>
     <DialogHeader>
       <DialogTitle class="text-xl font-semibold">{title}</DialogTitle>
     </DialogHeader>
@@ -90,3 +92,15 @@
     </DialogFooter>
   </DialogContent>
 </Dialog>
+
+<style>
+  /* When highZIndex is true, increase z-index to appear over modals (z-index 100+) */
+  :global([data-slot="dialog-content"].confirm-dialog-high-z) {
+    z-index: 150 !important;
+  }
+
+  /* Also increase overlay z-index when high-z content is present */
+  :global(body:has([data-slot="dialog-content"].confirm-dialog-high-z) [data-slot="dialog-overlay"]) {
+    z-index: 150 !important;
+  }
+</style>

@@ -5,6 +5,7 @@
   import { User, ListPlus, RefreshCw, LogOut, X, ChevronDown, Database, Palette } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
   import { syncStore } from '$lib/stores/sync.svelte';
   import { toast } from 'svelte-sonner';
@@ -28,6 +29,9 @@
   // Dropdown state
   let isSyncDropdownOpen = $state(false);
   let isThemeDropdownOpen = $state(false);
+
+  // Confirmation dialog state
+  let showResetConfirmDialog = $state(false);
 
   // Get current theme
   let currentColor = $derived(themeStore.color);
@@ -78,8 +82,8 @@
     }
   }
 
-  // Handle clear cache and sync
-  async function handleClearCacheAndSync(e?: MouseEvent) {
+  // Show confirmation dialog for database reset
+  function handleResetDatabaseClick(e?: MouseEvent) {
     e?.preventDefault();
     e?.stopPropagation();
 
@@ -88,14 +92,27 @@
     // Close dropdown immediately
     isSyncDropdownOpen = false;
 
+    // Show confirmation dialog
+    showResetConfirmDialog = true;
+  }
+
+  // Handle database reset after confirmation
+  async function handleResetDatabaseConfirm() {
+    showResetConfirmDialog = false;
+
     try {
       await syncStore.performClearCacheAndSync();
-      toast.success('Cache cleared and synced');
+      toast.success('Local database reset and synced');
     } catch (error) {
-      console.error('Clear cache and sync failed:', error);
-      const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
+      console.error('Database reset and sync failed:', error);
+      const message = error instanceof Error ? error.message : 'Database reset failed';
       toast.error(message);
     }
+  }
+
+  // Handle confirmation dialog cancel
+  function handleResetDatabaseCancel() {
+    showResetConfirmDialog = false;
   }
 
   // Handle edit lists
@@ -307,11 +324,11 @@
               <DropdownMenu.Content class="sync-dropdown-content" align="end">
                 <DropdownMenu.Item
                   class="sync-dropdown-item"
-                  onclick={(e) => handleClearCacheAndSync(e)}
+                  onclick={(e) => handleResetDatabaseClick(e)}
                   disabled={!isOnline || isClearingCache}
                 >
                   <Database size={16} class="mr-2" />
-                  Clear cache and sync
+                  Reset local database
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
@@ -321,6 +338,23 @@
     </div>
   </div>
 {/if}
+
+<!-- Confirmation dialog for database reset -->
+<ConfirmDialog
+  isOpen={showResetConfirmDialog}
+  title="Reset Local Database?"
+  message={`This will completely delete your local database and download a fresh copy from the server.
+
+All local data will be removed and replaced with data from the server.
+
+This action cannot be undone.`}
+  confirmText="Reset & Sync"
+  cancelText="Cancel"
+  variant="warning"
+  highZIndex={true}
+  onConfirm={handleResetDatabaseConfirm}
+  onCancel={handleResetDatabaseCancel}
+/>
 
 <style>
   /* ============================================================================

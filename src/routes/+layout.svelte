@@ -109,14 +109,17 @@
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && currentUserId) {
         try {
-          const { data: { session }, error } = await data.supabase.auth.getSession();
+          // Verify the user is actually authenticated, not just that a session exists
+          const { data: { user }, error } = await data.supabase.auth.getUser();
 
-          if (error || !session) {
+          if (error || !user) {
+            // Session is invalid, redirect to login
+            currentUserId = null;
             window.location.href = '/login';
             return;
           }
 
-          // Session valid, trigger sync
+          // User is authenticated, trigger sync
           syncStore.performSync().catch((error) => {
             console.error('Sync after focus failed:', error);
           });

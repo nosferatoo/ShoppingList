@@ -331,7 +331,8 @@ export async function manualSync(supabase: SupabaseClient<Database>): Promise<Sy
 }
 
 /**
- * Clear local cache and perform full sync
+ * Reset local database and perform full sync
+ * Completely deletes and recreates the local database to fix any corruption
  * Used when user wants to force a complete refresh from server
  *
  * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
@@ -342,15 +343,24 @@ export async function clearCacheAndSync(supabase: SupabaseClient<Database>): Pro
   }
 
   try {
-    // Step 1: Clear all IndexedDB data atomically
-    await db.clearAll();
+    // Step 1: Completely delete the IndexedDB database (schema + data)
+    // This fixes any schema corruption or migration issues
+    await db.delete();
 
-    // Step 2: Perform full sync (which fetches all data from server)
+    // Step 2: Reopen the database with fresh schema
+    // After delete(), the database connection is closed and must be reopened
+    await db.open();
+
+    // Step 3: Ensure database is ready by performing a simple check
+    // This ensures all tables are properly created before we try to sync
+    await db.lists.count();
+
+    // Step 4: Perform full sync (which fetches all data from server)
     const result = await sync(supabase);
 
     return result;
   } catch (error) {
-    console.error('Clear cache and sync failed:', error);
+    console.error('Database reset and sync failed:', error);
     throw error;
   }
 }

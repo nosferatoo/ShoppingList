@@ -185,6 +185,13 @@ export const syncStore = {
       throw new Error('Supabase client not initialized');
     }
 
+    // Verify user is authenticated before attempting sync
+    const { data: { user }, error: authError } = await state.supabase.auth.getUser();
+    if (authError || !user) {
+      state.error = 'Not authenticated';
+      throw new Error('Not authenticated');
+    }
+
     state.isSyncing = true;
     state.error = null;
 
@@ -218,6 +225,13 @@ export const syncStore = {
     if (!state.supabase) {
       state.error = 'Supabase client not initialized';
       throw new Error('Supabase client not initialized');
+    }
+
+    // Verify user is authenticated before attempting sync
+    const { data: { user }, error: authError } = await state.supabase.auth.getUser();
+    if (authError || !user) {
+      state.error = 'Not authenticated';
+      throw new Error('Not authenticated');
     }
 
     state.isClearingCache = true;

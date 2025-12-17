@@ -157,11 +157,13 @@
         <CardTitle class="list-title">{list.title}</CardTitle>
 
         <!-- Item count -->
-        {#if totalCount > 0}
-          <span class="item-count">
+        <span class="item-count">
+          {#if totalCount === 0}
+            0 items
+          {:else}
             {checkedCount} of {totalCount} completed
-          </span>
-        {/if}
+          {/if}
+        </span>
       </div>
     </div>
 
@@ -285,6 +287,10 @@
       max-height: 100vh;
       overflow: hidden;
       position: relative;
+
+      /* Reduce top padding and gap on mobile */
+      padding-top: var(--space-3) !important;
+      gap: var(--space-2) !important;
     }
   }
 
@@ -302,7 +308,6 @@
   @media (max-width: 1023px) {
     :global(.card-header) {
       grid-row: 1;
-      border-bottom: 1px solid var(--border-subtle);
     }
   }
 
@@ -391,7 +396,7 @@
     .add-item-form {
       grid-row: 1;
       margin-bottom: 0;
-      padding-bottom: var(--space-3);
+      padding-bottom: var(--space-2);
     }
   }
 
@@ -535,6 +540,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 100%;
 
     /* Spacing */
     padding: var(--space-8) var(--space-4);

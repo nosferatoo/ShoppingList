@@ -86,7 +86,7 @@ export class ListsDatabase extends Dexie {
   // Table declarations with TypeScript types
   lists!: Table<LocalList, number>;
   items!: Table<LocalItem, number>;
-  userListSettings!: Table<LocalUserListSettings, [string, number]>;
+  userListSettings!: Table<LocalUserListSettings, number>;
   syncMeta!: Table<SyncMeta, string>;
   checkLogs!: Table<LocalCheckLog, number>;
 
@@ -294,15 +294,40 @@ export const db = new ListsDatabase();
 /**
  * Initialize database on first load
  * Sets up any necessary default data or migrations
+ * Includes error recovery for schema upgrade failures
  */
 export async function initializeDatabase(): Promise<void> {
-  // Check if already initialized
-  const initialized = await db.isInitialized();
-  if (initialized) {
-    return;
-  }
+  try {
+    // Try to access the database to trigger any upgrade errors
+    const initialized = await db.isInitialized();
+    if (initialized) {
+      return;
+    }
 
-  // Database is empty - will be populated on first sync
+    // Database is empty - will be populated on first sync
+  } catch (error) {
+    // Check if it's an upgrade error (e.g., incompatible schema from old version)
+    if (error instanceof Error && (
+      error.name === 'UpgradeError' ||
+      error.message?.includes('UpgradeError') ||
+      error.message?.includes('primary key')
+    )) {
+      console.error('Database upgrade failed, performing auto-recovery:', error.message);
+
+      // Delete the corrupted database completely
+      await db.delete();
+
+      // The database will be recreated automatically with the latest schema
+      // on next access. Verify it's working by checking initialization status.
+      const reinitialized = await db.isInitialized();
+
+      console.log('Database auto-recovery complete. Will sync from server.');
+      return;
+    }
+
+    // Re-throw other unexpected errors
+    throw error;
+  }
 }
 
 /**

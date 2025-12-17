@@ -54,6 +54,7 @@
   let unconfirmedMenus = $state<MenuWithDetails[]>([]);
   let isUserDropdownOpen = $state(false);
   let isThemeDropdownOpen = $state(false);
+  let showResetConfirmDialog = $state(false);
   let listsData = $state<ListWithItems[]>(data.lists);
   let showSwipeHint = $state(false);
   let editingItem = $state<Item | null>(null);
@@ -544,19 +545,30 @@
     }
   }
 
-  // Handle clear cache and sync
-  async function handleClearCacheAndSync() {
+  // Show confirmation dialog for database reset
+  function handleResetDatabaseClick() {
     if (!syncStore.isOnline || syncStore.isClearingCache) return;
+    showResetConfirmDialog = true;
+  }
+
+  // Handle database reset after confirmation
+  async function handleResetDatabaseConfirm() {
+    showResetConfirmDialog = false;
 
     try {
       await syncStore.performClearCacheAndSync();
       await loadListsFromIndexedDB();
-      toast.success('Cache cleared and synced');
+      toast.success('Local database reset and synced');
     } catch (error) {
-      console.error('Clear cache and sync failed:', error);
-      const message = error instanceof Error ? error.message : 'Clear cache and sync failed';
+      console.error('Database reset and sync failed:', error);
+      const message = error instanceof Error ? error.message : 'Database reset failed';
       toast.error(message);
     }
+  }
+
+  // Handle confirmation dialog cancel
+  function handleResetDatabaseCancel() {
+    showResetConfirmDialog = false;
   }
 
   // Theme options
@@ -768,10 +780,10 @@
               <DropdownMenu.Item
                 class="sync-dropdown-item"
                 disabled={syncStore.isClearingCache}
-                onSelect={handleClearCacheAndSync}
+                onSelect={handleResetDatabaseClick}
               >
                 <Database size={16} class="mr-2" />
-                Clear cache and sync
+                Reset local database
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Root>
@@ -1061,6 +1073,22 @@
     supabase={data.supabase}
     menus={unconfirmedMenus}
     onConfirmed={handleMenuConfirmed}
+  />
+
+  <!-- Database Reset Confirmation Dialog -->
+  <ConfirmDialog
+    isOpen={showResetConfirmDialog}
+    title="Reset Local Database?"
+    message={`This will completely delete your local database and download a fresh copy from the server.
+
+All local data will be removed and replaced with data from the server.
+
+This action cannot be undone.`}
+    confirmText="Reset & Sync"
+    cancelText="Cancel"
+    variant="warning"
+    onConfirm={handleResetDatabaseConfirm}
+    onCancel={handleResetDatabaseCancel}
   />
 </div>
 
