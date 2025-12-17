@@ -173,9 +173,7 @@
     {:else if list.is_shared}
       <span class="shared-badge">Shared</span>
     {/if}
-  </CardHeader>
 
-  <CardContent class="card-content">
     <!-- Add item form - Integrated input with button -->
     <form class="add-item-form" onsubmit={handleAddItem}>
       <div class="input-with-button">
@@ -200,6 +198,9 @@
         </Button>
       </div>
     </form>
+  </CardHeader>
+
+  <CardContent class="card-content">
 
     <!-- Items list -->
     <div class="items-container">
@@ -273,14 +274,14 @@
     }
   }
 
-  /* Mobile: grid layout for fixed header/input, scrollable items */
+  /* Mobile: grid with sticky header */
   @media (max-width: 1023px) {
     :global(.list-card) {
       max-width: unset;
       border-radius: 0;
       box-shadow: none;
 
-      /* Grid layout - explicit height */
+      /* Grid layout - header (auto) + content (fill remaining) */
       display: grid !important;
       grid-template-rows: auto minmax(0, 1fr);
       height: 100vh;
@@ -288,9 +289,9 @@
       overflow: hidden;
       position: relative;
 
-      /* Reduce top padding and gap on mobile */
-      padding-top: var(--space-3) !important;
-      gap: var(--space-2) !important;
+      /* Remove padding */
+      padding-top: 0 !important;
+      gap: 0 !important;
     }
   }
 
@@ -304,10 +305,41 @@
     gap: var(--space-3);
   }
 
-  /* Mobile: show as grid row 1 */
+  /* Mobile: sticky header with flex wrap layout */
   @media (max-width: 1023px) {
     :global(.card-header) {
-      grid-row: 1;
+      /* Sticky positioning at top of scroll container */
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+
+      /* Flex row with wrap - allows form to wrap to next line */
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+
+      /* Background and padding */
+      background-color: var(--bg-primary);
+      padding: var(--space-4) var(--space-3);
+
+      /* Visual separation */
+      border-bottom: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
+
+      /* PREVENT SCROLLING ON HEADER - Modern CSS approach */
+      touch-action: none; /* Prevents all touch gestures (pan, zoom) */
+      -webkit-overflow-scrolling: auto; /* Disable momentum scrolling on iOS */
+      overscroll-behavior: none; /* Prevent scroll chaining */
+
+      /* Additional iOS compatibility */
+      -webkit-touch-callout: none; /* Disable iOS callout */
+      -webkit-user-select: none; /* Prevent text selection on touch */
+      user-select: none;
     }
   }
 
@@ -318,6 +350,12 @@
     gap: var(--space-3);
     flex: 1;
     min-width: 0; /* Allow text truncation */
+  }
+
+  @media (max-width: 1023px) {
+    .header-left {
+      order: 1;
+    }
   }
 
   /* Class is applied to Lucide icon components */
@@ -364,6 +402,12 @@
     padding: var(--space-1) var(--space-2);
   }
 
+  @media (max-width: 1023px) {
+    .shared-badge {
+      order: 2;
+    }
+  }
+
   :global(.card-content) {
     /* Layout */
     flex: 1;
@@ -376,12 +420,18 @@
     :global(.card-content) {
       padding: 0 var(--space-3) 0 !important;
 
-      /* Grid layout for add-item and items */
-      grid-row: 2;
-      display: grid !important;
-      grid-template-rows: auto minmax(0, 1fr);
+      /* No extra top padding needed with sticky header */
+
+      /* No grid needed - just contains items-container */
+      display: flex !important;
+      flex-direction: column;
       overflow: hidden;
       min-height: 0;
+      height: 100%;
+
+      /* Ensure it stays below header */
+      position: relative;
+      z-index: 1;
     }
   }
 
@@ -391,12 +441,16 @@
     margin-bottom: var(--space-4);
   }
 
-  /* Mobile: grid row 1 (non-scrolling) */
+  /* Mobile: inside fixed header, full width to wrap to next line */
   @media (max-width: 1023px) {
     .add-item-form {
-      grid-row: 1;
       margin-bottom: 0;
-      padding-bottom: var(--space-2);
+      width: 100%;
+      flex-basis: 100%;
+      order: 3; /* Ensure form appears after header-left and badge */
+
+      /* ALLOW TOUCH INTERACTION - Override parent's touch-action: none */
+      touch-action: auto; /* Allow normal touch behavior on form */
     }
   }
 
@@ -507,14 +561,18 @@
     scrollbar-color: var(--border-default) transparent;
   }
 
-  /* Mobile: grid row 2 (scrollable area only) */
+  /* Mobile: scrollable area fills remaining space */
   @media (max-width: 1023px) {
     .items-container {
-      grid-row: 2;
+      flex: 1;
       overflow-y: auto !important;
       overflow-x: hidden;
       min-height: 0;
       -webkit-overflow-scrolling: touch;
+
+      /* PREVENT SCROLL BUBBLING - Contain scroll within this element */
+      overscroll-behavior: contain; /* Prevents scroll chaining to parent */
+      overscroll-behavior-y: contain; /* Specific to vertical scroll */
     }
   }
 
