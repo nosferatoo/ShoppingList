@@ -2142,7 +2142,7 @@
       border-bottom-right-radius: var(--radius-lg);
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
-      border-left: none;
+      border-left: 1px solid var(--border-subtle);
       cursor: pointer;
       box-shadow: var(--shadow-lg);
 
