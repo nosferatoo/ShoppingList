@@ -728,9 +728,10 @@
     transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
   }
 
-  :global(button.sync-button-main) {
+  :global(button.sync-button.sync-button-main) {
     flex: 1 !important;
     min-width: 0 !important;
+    width: auto !important;
   }
 
   .sync-button-main {
@@ -1027,9 +1028,10 @@
     transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
   }
 
-  :global(button.theme-button-main) {
+  :global(button.theme-button.theme-button-main) {
     flex: 1 !important;
     min-width: 0 !important;
+    width: auto !important;
   }
 
   .theme-button-main {
