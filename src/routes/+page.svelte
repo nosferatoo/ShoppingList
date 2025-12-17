@@ -2098,7 +2098,7 @@
     .sync-button-main {
       flex: 1;
       min-width: 0;
-      border-right: 1px solid currentColor;
+      border-right: none;
       border-top-left-radius: var(--radius-lg);
       border-bottom-left-radius: var(--radius-lg);
       border-top-right-radius: 0;
@@ -2108,7 +2108,7 @@
     :global(button.sync-button-floating.sync-button-main) {
       flex: 1 !important;
       min-width: 0 !important;
-      border-right: 1px solid currentColor !important;
+      border-right: none !important;
       border-top-left-radius: var(--radius-lg) !important;
       border-bottom-left-radius: var(--radius-lg) !important;
       border-top-right-radius: 0 !important;
