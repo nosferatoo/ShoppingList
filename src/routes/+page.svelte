@@ -28,6 +28,7 @@
     CarouselPrevious
   } from '$lib/components/ui/carousel';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+  import { Button } from '$lib/components/ui/button';
   import type { ListWithItems, Item, MenuWithDetails } from '$lib/types';
 
   // Props
