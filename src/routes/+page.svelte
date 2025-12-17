@@ -1787,12 +1787,37 @@
                   transform var(--transition-fast);
     }
 
+    /* Override shadcn Button defaults for action-button-floating */
+    :global(button.action-button-floating) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 48px !important;
+      height: 48px !important;
+      background-color: var(--bg-secondary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: var(--radius-lg) !important;
+      cursor: pointer !important;
+      box-shadow: var(--shadow-lg) !important;
+      color: var(--text-secondary) !important;
+      transition: color var(--transition-fast),
+                  background-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  transform var(--transition-fast) !important;
+    }
+
     /* Edit Lists Button with text */
     .action-button-floating.edit-lists-button {
       /* Size - wider to accommodate text */
       width: auto;
       gap: var(--space-2);
       padding: 0 var(--space-4);
+    }
+
+    :global(button.action-button-floating.edit-lists-button) {
+      width: auto !important;
+      gap: var(--space-2) !important;
+      padding: 0 var(--space-4) !important;
     }
 
     .button-text {
@@ -1877,6 +1902,29 @@
                   border-color var(--transition-fast),
                   box-shadow var(--transition-fast),
                   transform var(--transition-fast);
+    }
+
+    /* Override shadcn Button defaults for sync-button-floating */
+    :global(button.sync-button-floating) {
+      all: unset !important;
+      box-sizing: border-box !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: var(--space-3) !important;
+      padding: var(--space-3) var(--space-4) !important;
+      height: 48px !important;
+      background-color: var(--bg-secondary) !important;
+      border: 1px solid var(--border-subtle) !important;
+      cursor: pointer !important;
+      box-shadow: var(--shadow-lg) !important;
+      font-family: var(--font-body) !important;
+      font-size: var(--text-base) !important;
+      font-weight: var(--font-medium) !important;
+      transition: background-color var(--transition-fast),
+                  border-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  transform var(--transition-fast) !important;
     }
 
     .sync-icon {
@@ -1991,6 +2039,16 @@
       border-bottom-left-radius: var(--radius-lg);
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
+    }
+
+    :global(button.sync-button-floating.sync-button-main) {
+      flex: 1 !important;
+      min-width: 0 !important;
+      border-right: 1px solid currentColor !important;
+      border-top-left-radius: var(--radius-lg) !important;
+      border-bottom-left-radius: var(--radius-lg) !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
     }
 
     /* Arrow button - targets shadcn Trigger */
@@ -2147,6 +2205,15 @@
       border-right: none;
     }
 
+    :global(button.action-button-floating.theme-button-main) {
+      width: auto !important;
+      gap: var(--space-2) !important;
+      padding: 0 var(--space-4) !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+      border-right: none !important;
+    }
+
     /* Arrow button - targets shadcn Trigger */
     .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
       /* Reset */
@@ -2221,6 +2288,15 @@
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
       border-right: none;
+    }
+
+    :global(button.action-button-floating.meals-button-main) {
+      width: auto !important;
+      gap: var(--space-2) !important;
+      padding: 0 var(--space-4) !important;
+      border-top-right-radius: 0 !important;
+      border-bottom-right-radius: 0 !important;
+      border-right: none !important;
     }
 
     .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
