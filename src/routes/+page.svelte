@@ -1829,9 +1829,21 @@
       transform: translateY(-1px);
     }
 
+    :global(button.action-button-floating:hover:not(:disabled)) {
+      color: var(--text-primary) !important;
+      background-color: var(--bg-hover) !important;
+      box-shadow: var(--shadow-xl) !important;
+      transform: translateY(-1px) !important;
+    }
+
     .action-button-floating:focus-visible {
       outline: 2px solid var(--border-focus);
       outline-offset: 2px;
+    }
+
+    :global(button.action-button-floating:focus-visible) {
+      outline: 2px solid var(--border-focus) !important;
+      outline-offset: 2px !important;
     }
 
     .action-button-floating:active:not(:disabled) {
@@ -1840,9 +1852,20 @@
       transform: translateY(0);
     }
 
+    :global(button.action-button-floating:active:not(:disabled)) {
+      background-color: var(--bg-tertiary) !important;
+      box-shadow: var(--shadow-md) !important;
+      transform: translateY(0) !important;
+    }
+
     .action-button-floating:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    :global(button.action-button-floating:disabled) {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
     }
 
     /* Spinning animation for sync button */
@@ -1974,11 +1997,23 @@
       border-color: var(--border-subtle);
     }
 
+    :global(button.sync-button-floating.synced) {
+      background-color: var(--bg-secondary) !important;
+      border-color: var(--border-subtle) !important;
+    }
+
     .sync-button-floating.synced:hover:not(:disabled) {
       background-color: var(--bg-hover);
       border-color: var(--border-default);
       box-shadow: var(--shadow-xl);
       transform: translateY(-1px);
+    }
+
+    :global(button.sync-button-floating.synced:hover:not(:disabled)) {
+      background-color: var(--bg-hover) !important;
+      border-color: var(--border-default) !important;
+      box-shadow: var(--shadow-xl) !important;
+      transform: translateY(-1px) !important;
     }
 
     /* Syncing state - no special styling */
@@ -1987,11 +2022,22 @@
       border-color: var(--border-subtle);
     }
 
+    :global(button.sync-button-floating.syncing) {
+      background-color: var(--bg-secondary) !important;
+      border-color: var(--border-subtle) !important;
+    }
+
     /* Offline state - muted */
     .sync-button-floating.offline {
       background-color: var(--bg-secondary);
       border-color: var(--border-subtle);
       opacity: 0.7;
+    }
+
+    :global(button.sync-button-floating.offline) {
+      background-color: var(--bg-secondary) !important;
+      border-color: var(--border-subtle) !important;
+      opacity: 0.7 !important;
     }
 
     .sync-button-floating.offline .sync-icon,
@@ -2006,18 +2052,39 @@
       transform: translateY(-1px);
     }
 
+    :global(button.sync-button-floating:hover:not(:disabled):not(.syncing):not(.offline)) {
+      background-color: var(--bg-hover) !important;
+      border-color: var(--border-default) !important;
+      box-shadow: var(--shadow-xl) !important;
+      transform: translateY(-1px) !important;
+    }
+
     .sync-button-floating:focus-visible {
       outline: 2px solid var(--border-focus);
       outline-offset: 2px;
+    }
+
+    :global(button.sync-button-floating:focus-visible) {
+      outline: 2px solid var(--border-focus) !important;
+      outline-offset: 2px !important;
     }
 
     .sync-button-floating:disabled {
       cursor: not-allowed;
     }
 
+    :global(button.sync-button-floating:disabled) {
+      cursor: not-allowed !important;
+    }
+
     .sync-button-floating:active:not(:disabled) {
       box-shadow: var(--shadow-md);
       transform: translateY(0);
+    }
+
+    :global(button.sync-button-floating:active:not(:disabled)) {
+      box-shadow: var(--shadow-md) !important;
+      transform: translateY(0) !important;
     }
 
     /* Split Button Container */
