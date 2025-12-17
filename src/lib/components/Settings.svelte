@@ -717,6 +717,7 @@
     justify-content: flex-start !important;
     gap: var(--space-3) !important;
     padding: var(--space-3) var(--space-4) !important;
+    width: 100% !important;
     height: 64px !important;
     background-color: var(--bg-secondary) !important;
     border: 1px solid var(--border-subtle) !important;
@@ -725,6 +726,11 @@
     font-size: var(--text-base) !important;
     font-weight: var(--font-medium) !important;
     transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
+  }
+
+  :global(button.sync-button-main) {
+    flex: 1 !important;
+    min-width: 0 !important;
   }
 
   .sync-button-main {
@@ -1010,6 +1016,7 @@
     justify-content: flex-start !important;
     gap: var(--space-3) !important;
     padding: var(--space-3) var(--space-4) !important;
+    width: 100% !important;
     height: 64px !important;
     background-color: var(--bg-secondary) !important;
     border: 1px solid var(--border-subtle) !important;
@@ -1018,6 +1025,11 @@
     font-size: var(--text-base) !important;
     font-weight: var(--font-medium) !important;
     transition: background-color var(--transition-fast), border-color var(--transition-fast) !important;
+  }
+
+  :global(button.theme-button-main) {
+    flex: 1 !important;
+    min-width: 0 !important;
   }
 
   .theme-button-main {
