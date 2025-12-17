@@ -210,7 +210,6 @@
         <!-- Lists Management Section -->
         <section class="settings-section">
           <Button
-            variant="ghost"
             class="menu-item"
             onclick={handleEditLists}
           >
@@ -226,7 +225,6 @@
           <div class="theme-button-container">
             <!-- Main Theme Button -->
             <Button
-              variant="ghost"
               class="theme-button theme-button-main"
               onclick={() => isThemeDropdownOpen = !isThemeDropdownOpen}
               aria-label="Change theme"
@@ -271,7 +269,6 @@
           <div class="sync-button-container">
             <!-- Main Sync Button -->
             <Button
-              variant="ghost"
               class="sync-button sync-button-main {syncStatus}"
               onclick={(e) => handleSync(e)}
               disabled={!isOnline || isSyncing || isClearingCache}

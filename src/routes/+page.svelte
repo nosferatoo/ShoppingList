@@ -723,7 +723,6 @@
         <div class="sync-button-container">
           <!-- Main Sync Button -->
           <Button
-            variant="ghost"
             class="sync-button-floating sync-button-main {syncStore.isSyncing || syncStore.isClearingCache ? 'syncing' : syncStore.isOnline && !syncStore.isSyncing && !syncStore.isClearingCache ? 'synced' : !syncStore.isOnline ? 'offline' : ''}"
             onclick={handleSync}
             disabled={!syncStore.isOnline || syncStore.isSyncing || syncStore.isClearingCache}
@@ -785,7 +784,6 @@
 
         <!-- Edit Lists Button -->
         <Button
-          variant="ghost"
           class="action-button-floating edit-lists-button"
           onclick={handleEditLists}
           aria-label="Edit lists"
@@ -799,7 +797,6 @@
         <div class="meals-button-container hidden lg:block">
           <!-- Main Meals Button -->
           <Button
-            variant="ghost"
             class="action-button-floating meals-button-main"
             onclick={handleMealPlannerModalOpen}
             aria-label="Meal planner"
@@ -834,7 +831,6 @@
         <div class="theme-button-container">
           <!-- Main Theme Button -->
           <Button
-            variant="ghost"
             class="action-button-floating theme-button-main"
             onclick={() => isThemeDropdownOpen = !isThemeDropdownOpen}
             aria-label="Change theme"
