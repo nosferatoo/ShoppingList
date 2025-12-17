@@ -2147,7 +2147,7 @@
       box-shadow: var(--shadow-lg);
 
       /* Color */
-      color: var(--text-primary);
+      color: var(--text-secondary);
 
       /* Transition - matches main button */
       transition: color var(--transition-fast),
