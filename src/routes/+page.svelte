@@ -810,7 +810,6 @@
           <DropdownMenu.Root bind:open={isMealsDropdownOpen}>
             <DropdownMenu.Trigger
               type="button"
-              class="action-button-floating dropdown-trigger"
               aria-label="Meals options"
               title="Meals options"
             >
