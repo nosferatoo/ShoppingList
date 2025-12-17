@@ -1934,8 +1934,10 @@
       height: 48px !important;
       background-color: var(--bg-secondary) !important;
       border: 1px solid var(--border-subtle) !important;
+      border-radius: var(--radius-lg) !important;
       cursor: pointer !important;
       box-shadow: var(--shadow-lg) !important;
+      color: var(--text-secondary) !important;
       font-family: var(--font-body) !important;
       font-size: var(--text-base) !important;
       font-weight: var(--font-medium) !important;
