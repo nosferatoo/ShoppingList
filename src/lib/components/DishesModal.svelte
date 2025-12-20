@@ -2,7 +2,7 @@
   // Dishes management modal with 3-column layout
   // Desktop-only feature for meal planning
 
-  import { Plus, Trash2, X, UtensilsCrossed, CookingPot, ListPlus, ArrowRight, ArrowLeft } from 'lucide-svelte';
+  import { Plus, Trash2, X, UtensilsCrossed, CookingPot, ListPlus, ArrowRight, ArrowLeft, Pencil } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -46,6 +46,9 @@
   let selectedDishIngredients = $state<Array<{ ingredient: DishIngredient; item: Item | null }>>([]);
   let isDeleteDishModalOpen = $state(false);
   let dishToDelete = $state<Dish | null>(null);
+  let isEditDishModalOpen = $state(false);
+  let dishToEdit = $state<Dish | null>(null);
+  let editDishName = $state('');
   let isAddItemModalOpen = $state(false);
   let newItemName = $state('');
   let selectedListId = $state<number | null>(null);
@@ -107,6 +110,21 @@
     );
   });
 
+  // Derived state - highlighted ingredients based on available items search
+  let highlightedIngredientIds = $derived.by(() => {
+    const searchText = availableItemsSearch.trim().toLowerCase();
+    if (!searchText) return new Set<number>();
+
+    const matchingIds = new Set<number>();
+    for (const { ingredient, item } of selectedDishIngredients) {
+      const text = item?.text || ingredient.item_text;
+      if (text.toLowerCase() === searchText) {
+        matchingIds.add(ingredient.id);
+      }
+    }
+    return matchingIds;
+  });
+
   // Derived state - items already in current dish
   let ingredientItemIds = $derived.by(() => {
     return new Set(
@@ -132,6 +150,17 @@
   $effect(() => {
     if (isOpen) {
       loadDishes();
+    }
+  });
+
+  // Scroll to first highlighted ingredient when search changes
+  $effect(() => {
+    if (highlightedIngredientIds.size > 0 && availableItemsSearch.trim()) {
+      const firstMatchId = Array.from(highlightedIngredientIds)[0];
+      const element = document.querySelector(`[data-ingredient-id="${firstMatchId}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
   });
 
@@ -301,6 +330,79 @@
       closeDeleteDishModal();
     } catch (err) {
       console.error('Failed to delete dish:', err);
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  // ============================================================================
+  // EDIT DISH
+  // ============================================================================
+
+  function openEditDishModal(dish: Dish) {
+    dishToEdit = dish;
+    editDishName = dish.name;
+    isEditDishModalOpen = true;
+  }
+
+  function closeEditDishModal() {
+    isEditDishModalOpen = false;
+    dishToEdit = null;
+    editDishName = '';
+  }
+
+  async function confirmEditDish() {
+    if (!dishToEdit || !editDishName.trim()) return;
+
+    const trimmedName = editDishName.trim();
+
+    // Check for duplicate name before attempting update (excluding current dish)
+    const duplicateExists = dishes.some(
+      d => d.dish.id !== dishToEdit!.id && d.dish.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (duplicateExists) {
+      // Silent handling - just close the modal
+      closeEditDishModal();
+      return;
+    }
+
+    isSaving = true;
+
+    try {
+      const { error } = await supabase
+        .from('dishes')
+        .update({
+          name: trimmedName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', dishToEdit.id);
+
+      if (error) {
+        console.error('Error updating dish:', error);
+        throw error;
+      }
+
+      // Update local state
+      dishes = dishes.map(d => {
+        if (d.dish.id === dishToEdit!.id) {
+          return {
+            ...d,
+            dish: { ...d.dish, name: trimmedName }
+          };
+        }
+        return d;
+      }).sort((a, b) => a.dish.name.localeCompare(b.dish.name));
+
+      // Update selected dish if it was the one being edited
+      if (selectedDish?.id === dishToEdit.id) {
+        selectedDish = { ...selectedDish, name: trimmedName };
+      }
+
+      closeEditDishModal();
+    } catch (err) {
+      console.error('Failed to update dish:', err);
+      closeEditDishModal();
     } finally {
       isSaving = false;
     }
@@ -562,8 +664,20 @@
                         {dishData.dish.name}
                       </span>
 
-                      <!-- Delete button -->
+                      <!-- Edit and Delete buttons -->
                       <div class="actions-desktop">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          class="action-button-edit"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            openEditDishModal(dishData.dish);
+                          }}
+                          aria-label="Edit {dishData.dish.name}"
+                        >
+                          <Pencil size={18} />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon-sm"
@@ -627,7 +741,8 @@
                 {#if filteredIngredients.length > 0}
                   {#each filteredIngredients as { ingredient, item } (ingredient.id)}
                     <div
-                      class="item-wrapper"
+                      class="item-wrapper {highlightedIngredientIds.has(ingredient.id) ? 'highlighted' : ''}"
+                      data-ingredient-id={ingredient.id}
                       ondblclick={() => handleRemoveIngredient(ingredient.id)}
                     >
                       <div class="item-content">
@@ -799,6 +914,48 @@
           disabled={isSaving}
         >
           {isSaving ? 'Deleting...' : 'Delete'}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+{/if}
+
+<!-- Edit Dish Modal -->
+{#if dishToEdit}
+  <Dialog open={isEditDishModalOpen} onOpenChange={(open) => !open && closeEditDishModal()}>
+    <DialogContent class="max-w-lg" showCloseButton={false}>
+      <DialogHeader>
+        <DialogTitle class="text-xl font-semibold">Edit Dish</DialogTitle>
+      </DialogHeader>
+
+      <div class="grid gap-4 py-4">
+        <div class="grid gap-2">
+          <Label for="dish-name">Dish name</Label>
+          <Input
+            id="dish-name"
+            type="text"
+            bind:value={editDishName}
+            onkeydown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !isSaving) {
+                e.preventDefault();
+                confirmEditDish();
+              }
+            }}
+            placeholder="Dish name"
+            autofocus
+          />
+        </div>
+      </div>
+
+      <DialogFooter class="gap-3">
+        <Button variant="outline" onclick={closeEditDishModal} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button
+          onclick={confirmEditDish}
+          disabled={!editDishName.trim() || isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save'}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -1008,10 +1165,9 @@
   .item-wrapper {
     position: relative;
     overflow: hidden;
-    border: 1px solid transparent;
-    border-bottom-color: var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
     margin: 0 var(--space-3);
-    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+    transition: background-color var(--transition-fast);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
@@ -1025,7 +1181,7 @@
 
   .item-wrapper.selected {
     background-color: var(--accent-muted);
-    border-color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
     border-radius: var(--radius-md);
   }
 
@@ -1038,6 +1194,11 @@
     background-color: transparent;
   }
 
+  .item-wrapper.highlighted {
+    background-color: color-mix(in oklch, var(--accent-primary), transparent 90%);
+    border-left: 3px solid var(--accent-primary);
+  }
+
   .item-content {
     display: flex;
     align-items: center;
@@ -1047,6 +1208,12 @@
     z-index: 1;
     padding: var(--space-3) var(--space-4);
     background-color: var(--bg-primary);
+  }
+
+  @media (min-width: 1024px) {
+    .item-content {
+      background-color: transparent;
+    }
   }
 
   /* Item text - matching ListItem.svelte */
@@ -1116,6 +1283,32 @@
   }
 
   /* Action button styling - matching ListItem.svelte */
+  :global(.action-button-edit) {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    transition: all var(--transition-fast) !important;
+  }
+
+  @media (min-width: 1024px) {
+    :global(.action-button-edit) {
+      color: var(--text-secondary) !important;
+    }
+
+    :global(.action-button-edit:hover) {
+      background-color: var(--accent-primary) !important;
+      color: var(--text-inverse) !important;
+      border-color: var(--accent-primary) !important;
+      box-shadow: var(--shadow-sm) !important;
+      transform: scale(1.05) !important;
+    }
+  }
+
+  :global(.action-button-edit:active) {
+    transform: scale(0.98) !important;
+  }
+
   :global(.action-button-delete) {
     background-color: var(--bg-secondary) !important;
     color: var(--text-secondary) !important;

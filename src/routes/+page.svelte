@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown, Palette, UtensilsCrossed } from 'lucide-svelte';
+  import { RefreshCw, CloudOff, Check, User, LogOut, ListPlus, RotateCcw, Database, ChevronDown, Palette, UtensilsCrossed, CookingPot } from 'lucide-svelte';
   import Header from '$lib/components/Header.svelte';
   import ListCard from '$lib/components/ListCard.svelte';
   import MasterList from '$lib/components/MasterList.svelte';
@@ -50,7 +50,6 @@
   let isDishesModalOpen = $state(false);
   let isMealPlannerModalOpen = $state(false);
   let isMenuConfirmationDialogOpen = $state(false);
-  let isMealsDropdownOpen = $state(false);
   let unconfirmedMenus = $state<MenuWithDetails[]>([]);
   let isUserDropdownOpen = $state(false);
   let isThemeDropdownOpen = $state(false);
@@ -514,7 +513,6 @@
 
   function handleDishesModalOpen() {
     isDishesModalOpen = true;
-    isMealsDropdownOpen = false;
   }
 
   function handleDishesModalClose() {
@@ -523,7 +521,6 @@
 
   function handleMealPlannerModalOpen() {
     isMealPlannerModalOpen = true;
-    isMealsDropdownOpen = false;
   }
 
   function handleMealPlannerModalClose() {
@@ -844,38 +841,27 @@
           <span class="button-text">Edit lists</span>
         </Button>
 
-        <!-- Meals Button (Desktop only, Split Button with Dropdown) -->
-        <div class="meals-button-container hidden lg:block">
-          <!-- Main Meals Button -->
-          <Button
-            class="action-button-floating meals-button-main"
-            onclick={handleMealPlannerModalOpen}
-            aria-label="Meal planner"
-            title="Meal planner"
-          >
-            <UtensilsCrossed size={18} />
-            <span class="button-text">Meals</span>
-          </Button>
+        <!-- Meals Button -->
+        <Button
+          class="action-button-floating edit-lists-button"
+          onclick={handleMealPlannerModalOpen}
+          aria-label="Meals"
+          title="Meals"
+        >
+          <UtensilsCrossed size={18} />
+          <span class="button-text">Meals</span>
+        </Button>
 
-          <!-- Dropdown Menu -->
-          <DropdownMenu.Root bind:open={isMealsDropdownOpen}>
-            <DropdownMenu.Trigger
-              type="button"
-              aria-label="Meals options"
-              title="Meals options"
-            >
-              <ChevronDown size={14} />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" class="w-48">
-              <DropdownMenu.Item onclick={handleMealPlannerModalOpen}>
-                <span>Meal Planner</span>
-              </DropdownMenu.Item>
-              <DropdownMenu.Item onclick={handleDishesModalOpen}>
-                <span>Dishes</span>
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </div>
+        <!-- Dishes Button -->
+        <Button
+          class="action-button-floating edit-lists-button"
+          onclick={handleDishesModalOpen}
+          aria-label="Dishes"
+          title="Dishes"
+        >
+          <CookingPot size={18} />
+          <span class="button-text">Dishes</span>
+        </Button>
 
         <!-- Theme Button with Dropdown -->
         <div class="theme-button-container">
@@ -2396,79 +2382,6 @@ This action cannot be undone.`}
     }
 
     .theme-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
-      background-color: var(--bg-tertiary);
-      box-shadow: var(--shadow-md);
-      transform: translateY(0);
-    }
-
-    /* ------------------------------------------------------------------------
-       Meals Button Container (Split Button, Desktop only)
-       ------------------------------------------------------------------------ */
-
-    .meals-button-container {
-      position: relative;
-      display: flex;
-      align-items: stretch;
-    }
-
-    .meals-button-main {
-      /* Inherits from action-button-floating */
-      width: auto;
-      gap: var(--space-2);
-      padding: 0 var(--space-4);
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-      border-right: none;
-    }
-
-    :global(button.action-button-floating.meals-button-main) {
-      width: auto !important;
-      gap: var(--space-2) !important;
-      padding: 0 var(--space-4) !important;
-      border-top-right-radius: 0 !important;
-      border-bottom-right-radius: 0 !important;
-      border-right: none !important;
-    }
-
-    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]) {
-      all: unset;
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      flex-shrink: 0;
-      padding: 0;
-      background-color: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
-      border-top-right-radius: var(--radius-lg);
-      border-bottom-right-radius: var(--radius-lg);
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      border-left: 1px solid var(--border-subtle);
-      cursor: pointer;
-      box-shadow: var(--shadow-lg);
-      color: var(--text-secondary);
-      transition: color var(--transition-fast),
-                  background-color var(--transition-fast),
-                  box-shadow var(--transition-fast),
-                  transform var(--transition-fast);
-    }
-
-    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:hover:not(:disabled)) {
-      color: var(--text-primary);
-      background-color: var(--bg-hover);
-      box-shadow: var(--shadow-xl);
-      transform: translateY(-1px);
-    }
-
-    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:focus-visible) {
-      outline: 2px solid var(--border-focus);
-      outline-offset: 2px;
-    }
-
-    .meals-button-container :global(button[data-slot="dropdown-menu-trigger"]:active:not(:disabled)) {
       background-color: var(--bg-tertiary);
       box-shadow: var(--shadow-md);
       transform: translateY(0);
