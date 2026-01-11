@@ -33,3 +33,9 @@ CLAUDE.md
 TROUBLESHOOTING.md
 ANIMATION_ENHANCEMENT_PLAN.md
 MODAL_ANIMATION_INVESTIGATION.md
+
+# Supabase
+supabase/migrations/
+
+# Docs
+docs/

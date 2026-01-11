@@ -422,6 +422,58 @@
     editingItemListName = '';
   }
 
+  async function handleMoveItem(itemId: number, newListId: number) {
+    try {
+      const { error } = await data.supabase
+        .from('items')
+        .update({
+          list_id: newListId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error moving item:', error);
+        throw error;
+      }
+
+      // Update local state - move item from old list to new list
+      let movedItem: Item | undefined;
+
+      listsData = listsData.map(listData => {
+        // Find and remove item from old list
+        const itemIndex = listData.items.findIndex(i => i.id === itemId);
+        if (itemIndex !== -1) {
+          movedItem = { ...listData.items[itemIndex], list_id: newListId, updated_at: new Date().toISOString() };
+          return {
+            ...listData,
+            items: listData.items.filter(i => i.id !== itemId)
+          };
+        }
+        return listData;
+      });
+
+      // Add item to new list
+      if (movedItem) {
+        listsData = listsData.map(listData => {
+          if (listData.list.id === newListId) {
+            return {
+              ...listData,
+              items: [...listData.items, movedItem!]
+            };
+          }
+          return listData;
+        });
+      }
+
+      // Close dialog
+      editingItem = null;
+      editingItemListName = '';
+    } catch (err) {
+      console.error('Failed to move item:', err);
+    }
+  }
+
   function handleDeleteItem(itemId: number) {
     // Find the item to get its name and list
     for (const list of listsData) {
@@ -1041,6 +1093,11 @@
     isOpen={editingItem !== null}
     onSave={handleSaveEdit}
     onClose={handleCloseEditDialog}
+    listId={editingItem ? listsData.find(l => l.items.some(i => i.id === editingItem?.id))?.list.id : undefined}
+    currentListType={editingItem ? listsData.find(l => l.items.some(i => i.id === editingItem?.id))?.list.type : undefined}
+    currentListIsFood={editingItem ? listsData.find(l => l.items.some(i => i.id === editingItem?.id))?.list.is_food : undefined}
+    availableLists={listsData.map(l => l.list)}
+    onMove={handleMoveItem}
   />
 
   <!-- Delete Confirmation Dialog -->

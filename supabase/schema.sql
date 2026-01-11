@@ -146,6 +146,9 @@ create unique index dishes_name_unique_idx
   on public.dishes(lower(name))
   where deleted_at is null;
 
+-- Add link column for recipe URLs (YouTube or website links)
+alter table public.dishes add column link text default null;
+
 -- ----------------------------------------------------------------------------
 -- DISH INGREDIENTS TABLE (meal planning)
 -- ----------------------------------------------------------------------------
@@ -443,6 +446,11 @@ create policy "All users can delete dish ingredients"
   on public.dish_ingredients for delete
   using (auth.uid() is not null);
 
+create policy "All users can update dish ingredients"
+  on public.dish_ingredients for update
+  using (auth.uid() is not null)
+  with check (auth.uid() is not null);
+
 -- ----------------------------------------------------------------------------
 -- MENUS POLICIES
 -- ----------------------------------------------------------------------------
@@ -549,6 +557,28 @@ create trigger menus_updated_at
   before update on public.menus
   for each row
   execute function public.handle_updated_at();
+
+-- ----------------------------------------------------------------------------
+-- SYNC ITEM TEXT TO DISH INGREDIENTS
+-- When an item's text is renamed, update all dish_ingredients that reference it
+-- ----------------------------------------------------------------------------
+create or replace function public.sync_item_text_to_ingredients()
+returns trigger as $$
+begin
+  -- Only sync if text actually changed
+  if OLD.text is distinct from NEW.text then
+    update public.dish_ingredients
+    set item_text = NEW.text
+    where item_id = NEW.id;
+  end if;
+  return NEW;
+end;
+$$ language plpgsql;
+
+create trigger sync_item_text_to_dish_ingredients
+  after update of text on public.items
+  for each row
+  execute function public.sync_item_text_to_ingredients();
 
 -- ----------------------------------------------------------------------------
 -- Get all accessible lists with items and user's sort order (initial load)
@@ -766,7 +796,7 @@ begin
               when di.item_id is not null then (
                 select row_to_json(i)
                 from public.items i
-                where i.id = di.item_id
+                where i.id = di.item_id and i.deleted_at is null
               )
               else null
             end
@@ -785,6 +815,24 @@ begin
   return coalesce(result, '[]'::json);
 end;
 $$ language plpgsql security definer;
+
+-- ----------------------------------------------------------------------------
+-- Get orphaned ingredients (ingredients whose linked item no longer exists)
+-- ----------------------------------------------------------------------------
+create or replace function public.get_orphaned_ingredients()
+returns json as $$
+  select coalesce(json_agg(json_build_object(
+    'ingredient', row_to_json(di),
+    'dish', row_to_json(d)
+  )), '[]'::json)
+  from public.dish_ingredients di
+  inner join public.dishes d on d.id = di.dish_id and d.deleted_at is null
+  where di.item_id is null
+     or not exists (
+       select 1 from public.items i
+       where i.id = di.item_id and i.deleted_at is null
+     );
+$$ language sql security definer;
 
 -- ----------------------------------------------------------------------------
 -- Get menus with dishes for date range (meal planning)

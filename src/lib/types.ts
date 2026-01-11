@@ -55,6 +55,7 @@ export interface CheckLog {
 export interface Dish {
   id: number;
   name: string;
+  link: string | null;
   owner_id: string;
   created_at: string;
   updated_at: string;
@@ -114,6 +115,11 @@ export interface MenuWithDetails {
     ingredient: DishIngredient;
     item: Item | null;
   }>;
+}
+
+export interface OrphanedIngredient {
+  ingredient: DishIngredient;
+  dish: Dish;
 }
 
 // ============================================================================
@@ -352,6 +358,7 @@ export interface Database {
         Row: {
           id: number
           name: string
+          link: string | null
           owner_id: string
           created_at: string
           updated_at: string
@@ -360,6 +367,7 @@ export interface Database {
         Insert: {
           id?: number
           name: string
+          link?: string | null
           owner_id: string
           created_at?: string
           updated_at?: string
@@ -368,6 +376,7 @@ export interface Database {
         Update: {
           id?: number
           name?: string
+          link?: string | null
           owner_id?: string
           created_at?: string
           updated_at?: string
@@ -546,6 +555,10 @@ export interface Database {
         Returns: undefined
       }
       get_dishes_with_ingredients: {
+        Args: Record<string, never>
+        Returns: Json
+      }
+      get_orphaned_ingredients: {
         Args: Record<string, never>
         Returns: Json
       }

@@ -2,7 +2,7 @@
   // Reusable meal planner content component
   // Used in both desktop modal and mobile inline view
 
-  import { Trash2, ChevronDown, Plus, Check } from 'lucide-svelte';
+  import { Trash2, ChevronDown, Plus, Check, Youtube, ExternalLink } from 'lucide-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as Popover from '$lib/components/ui/popover';
   import * as BottomSheet from '$lib/components/ui/bottom-sheet';
@@ -33,6 +33,7 @@
   let additionalDays = $state(0); // Extra days beyond default 7
   let isMobile = $state(false); // Detect mobile viewport
   let selectedDishRef = $state<HTMLButtonElement | null>(null); // Ref to selected dish in bottom sheet
+  let previewMenuId = $state<number | null>(null); // Track which menu's ingredient preview is open
 
   // Derived state - all dates to display (history + upcoming)
   let allDates = $derived.by(() => {
@@ -172,6 +173,11 @@
   function formatDayName(date: Date): string {
     const options: Intl.DateTimeFormatOptions = { weekday: 'long' };
     return date.toLocaleDateString('en-US', options);
+  }
+
+  // Helper to detect YouTube links
+  function isYouTubeLink(url: string): boolean {
+    return url.includes('youtube.com') || url.includes('youtu.be');
   }
 
   // ============================================================================
@@ -468,12 +474,65 @@
                 <span class="text-[10px] lg:text-xs {isToday ? 'text-today' : 'text-muted-foreground'}">{formatDayName(date)}</span>
               </div>
 
-              <!-- Dish name -->
-              <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs lg:text-sm {isToday ? 'text-today font-medium' : ''}">
+              <!-- Dish name with ingredient preview -->
+              <div class="flex-1 overflow-hidden min-w-0">
                 {#if menu.dish}
-                  {menu.dish.name}
+                  <Popover.Root
+                    open={previewMenuId === menu.menu.id}
+                    onOpenChange={(open) => {
+                      previewMenuId = open ? menu.menu.id : null;
+                    }}
+                  >
+                    <Popover.Trigger
+                      class="text-left text-xs lg:text-sm truncate max-w-full text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80 {isToday ? 'font-medium' : ''}"
+                    >
+                      {menu.dish.name}
+                    </Popover.Trigger>
+                    <Popover.Content class="w-64 p-0">
+                      <div class="px-3 py-2 border-b border-border bg-muted/50 flex items-center justify-between gap-2">
+                        <div class="font-semibold text-sm truncate">{menu.dish.name}</div>
+                        {#if menu.dish.link}
+                          <button
+                            class="flex-shrink-0 inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            onclick={(e) => {
+                              e.stopPropagation();
+                              window.open(menu.dish!.link!, '_blank');
+                            }}
+                            aria-label="Open recipe link"
+                          >
+                            {#if isYouTubeLink(menu.dish.link)}
+                              <Youtube size={14} />
+                              <span>Video</span>
+                            {:else}
+                              <ExternalLink size={14} />
+                              <span>Recipe</span>
+                            {/if}
+                          </button>
+                        {/if}
+                      </div>
+                      <div class="p-3">
+                        <div class="text-xs uppercase text-muted-foreground mb-2">Ingredients</div>
+                        <ul class="space-y-1">
+                        {#each menu.ingredients as ing}
+                          <li class="text-sm flex items-center gap-2">
+                            <span class="text-muted-foreground">•</span>
+                            <span>{ing.ingredient.item_text}</span>
+                            {#if !ing.ingredient.item_id}
+                              <span class="text-xs px-1.5 py-0.5 bg-destructive/20 text-destructive rounded">
+                                orphaned
+                              </span>
+                            {/if}
+                          </li>
+                        {/each}
+                        {#if menu.ingredients.length === 0}
+                          <li class="text-sm text-muted-foreground">No ingredients</li>
+                        {/if}
+                        </ul>
+                      </div>
+                    </Popover.Content>
+                  </Popover.Root>
                 {:else}
-                  <span class="text-muted-foreground">(Deleted) {menu.menu.dish_name}</span>
+                  <span class="text-muted-foreground text-xs lg:text-sm truncate">(Deleted) {menu.menu.dish_name}</span>
                 {/if}
               </div>
 
@@ -495,12 +554,65 @@
               </div>
 
               {#if isConfirmed && menu}
-                <!-- Confirmed: Plain text display (like history) -->
-                <div class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-left px-4 py-2 {isToday ? 'text-today font-medium' : ''}">
+                <!-- Confirmed: Dish name with ingredient preview -->
+                <div class="flex-1 overflow-hidden min-w-0 px-4 py-2">
                   {#if menu.dish}
-                    {menu.dish.name}
+                    <Popover.Root
+                      open={previewMenuId === menu.menu.id}
+                      onOpenChange={(open) => {
+                        previewMenuId = open ? menu.menu.id : null;
+                      }}
+                    >
+                      <Popover.Trigger
+                        class="text-left text-sm truncate max-w-full text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80 {isToday ? 'font-medium' : ''}"
+                      >
+                        {menu.dish.name}
+                      </Popover.Trigger>
+                      <Popover.Content class="w-64 p-0">
+                        <div class="px-3 py-2 border-b border-border bg-muted/50 flex items-center justify-between gap-2">
+                          <div class="font-semibold text-sm truncate">{menu.dish.name}</div>
+                          {#if menu.dish.link}
+                            <button
+                              class="flex-shrink-0 inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              onclick={(e) => {
+                                e.stopPropagation();
+                                window.open(menu.dish!.link!, '_blank');
+                              }}
+                              aria-label="Open recipe link"
+                            >
+                              {#if isYouTubeLink(menu.dish.link)}
+                                <Youtube size={14} />
+                                <span>Video</span>
+                              {:else}
+                                <ExternalLink size={14} />
+                                <span>Recipe</span>
+                              {/if}
+                            </button>
+                          {/if}
+                        </div>
+                        <div class="p-3">
+                          <div class="text-xs uppercase text-muted-foreground mb-2">Ingredients</div>
+                          <ul class="space-y-1">
+                            {#each menu.ingredients as ing}
+                              <li class="text-sm flex items-center gap-2">
+                                <span class="text-muted-foreground">•</span>
+                                <span>{ing.ingredient.item_text}</span>
+                                {#if !ing.ingredient.item_id}
+                                  <span class="text-xs px-1.5 py-0.5 bg-destructive/20 text-destructive rounded">
+                                    orphaned
+                                  </span>
+                                {/if}
+                              </li>
+                            {/each}
+                            {#if menu.ingredients.length === 0}
+                              <li class="text-sm text-muted-foreground">No ingredients</li>
+                            {/if}
+                          </ul>
+                        </div>
+                      </Popover.Content>
+                    </Popover.Root>
                   {:else}
-                    <span class="text-muted-foreground">(Deleted) {menu.menu.dish_name}</span>
+                    <span class="text-muted-foreground text-sm truncate">(Deleted) {menu.menu.dish_name}</span>
                   {/if}
                 </div>
               {:else}
