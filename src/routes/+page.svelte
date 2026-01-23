@@ -1373,6 +1373,10 @@ This action cannot be undone.`}
     flex: 1;
     min-height: 0; /* Critical for flex height containment */
     overflow: hidden;
+    position: relative; /* Positioning context for pagination-dots */
+
+    /* Bottom padding for PWA safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   @media (min-width: 1024px) {
@@ -1403,9 +1407,10 @@ This action cannot be undone.`}
   }
 
   .lists-wrapper {
-    /* Layout */
+    /* Layout - fill swipe-container absolutely */
+    position: absolute;
+    inset: 0;
     display: flex;
-    height: 100%;
 
     /* Smooth transitions */
     transition: transform var(--transition-normal);
@@ -1422,29 +1427,19 @@ This action cannot be undone.`}
 
   /* Pagination dots */
   .pagination-dots {
-    /* Position */
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10;
-
-    /* Layout */
+    /* Layout - flex item at bottom of mobile-view */
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
+    z-index: 10;
 
-    /* Spacing - minimal padding */
-    padding: var(--space-2) var(--space-4);
-    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+    /* Spacing */
+    padding: var(--space-3) var(--space-4);
 
-    /* Background for visibility - minimal gradient */
-    background: linear-gradient(
-      to top,
-      var(--bg-primary) 80%,
-      transparent 100%
-    );
+    /* Background */
+    background-color: var(--bg-primary);
   }
 
   .dot {

@@ -290,8 +290,8 @@
       overflow: hidden;
       position: relative;
 
-      /* Remove padding */
-      padding-top: 0 !important;
+      /* Remove all padding and gap */
+      padding: 0 !important;
       gap: 0 !important;
     }
   }
