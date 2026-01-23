@@ -286,8 +286,7 @@
       /* Grid layout - header (auto) + content (fill remaining) */
       display: grid !important;
       grid-template-rows: auto minmax(0, 1fr);
-      height: 100vh;
-      max-height: 100vh;
+      height: 100%;
       overflow: hidden;
       position: relative;
 
@@ -573,14 +572,19 @@
   @media (max-width: 1023px) {
     .items-container {
       flex: 1;
-      overflow-y: auto !important;
+      /* CRITICAL: Use 'scroll' not 'auto' - forces element to always be a scroll container
+         even when content doesn't overflow. This ensures overscroll-behavior works. */
+      overflow-y: scroll !important;
       overflow-x: hidden;
       min-height: 0;
       -webkit-overflow-scrolling: touch;
 
-      /* PREVENT SCROLL BUBBLING - Contain scroll within this element */
-      overscroll-behavior: contain; /* Prevents scroll chaining to parent */
-      overscroll-behavior-y: contain; /* Specific to vertical scroll */
+      /* Allow vertical scroll/pan within this container */
+      touch-action: pan-y;
+
+      /* PREVENT SCROLL BUBBLING - only works when element IS a scroll container */
+      overscroll-behavior: contain;
+      overscroll-behavior-y: contain;
     }
   }
 

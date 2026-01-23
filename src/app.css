@@ -284,6 +284,18 @@
     letter-spacing: var(--tracking-normal);
   }
 
+  /* Mobile: Lock document scroll to prevent iOS Safari bounce/pull-to-refresh */
+  @media (max-width: 1023px) {
+    html,
+    body {
+      position: fixed;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      overscroll-behavior: none;
+    }
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: var(--font-semibold);

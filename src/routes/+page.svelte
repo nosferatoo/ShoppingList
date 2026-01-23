@@ -1196,6 +1196,16 @@ This action cannot be undone.`}
     -ms-user-select: none;
   }
 
+  /* Mobile: Lock app container to viewport to prevent body scroll */
+  @media (max-width: 1023px) {
+    .app-container {
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+  }
+
   .main-content {
     /* Layout */
     flex: 1;
@@ -1361,9 +1371,8 @@ This action cannot be undone.`}
     display: flex;
     flex-direction: column;
     flex: 1;
-
-    /* Show only on mobile */
-    display: flex;
+    min-height: 0; /* Critical for flex height containment */
+    overflow: hidden;
   }
 
   @media (min-width: 1024px) {
@@ -1385,10 +1394,12 @@ This action cannot be undone.`}
   .swipe-container {
     /* Layout */
     flex: 1;
+    min-height: 0; /* Critical for flex height containment */
     overflow: hidden;
     position: relative;
 
-    /* Touch action handled by svelte-gestures configuration */
+    /* Only allow horizontal panning for list swiping - block vertical scroll */
+    touch-action: pan-x pinch-zoom;
   }
 
   .lists-wrapper {
@@ -1406,11 +1417,7 @@ This action cannot be undone.`}
     flex: 0 0 100%;
     width: 100%;
     height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    /* Smooth scrolling */
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
   }
 
   /* Pagination dots */
