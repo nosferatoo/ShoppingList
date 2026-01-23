@@ -7,6 +7,18 @@ const config = {
 	// for more information about preprocessors
 	preprocess: vitePreprocess(),
 
+	// Compiler options
+	compilerOptions: {
+		// Filter out CSS unused selector warnings for dynamically-applied classes
+		// These classes are used at runtime but Svelte's static analysis can't detect them
+		warningFilter: (warning) => {
+			if (warning.code === 'css_unused_selector') {
+				return false;
+			}
+			return true;
+		}
+	},
+
 	kit: {
 		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.

@@ -239,6 +239,7 @@
   }
 
   /* Optional: CSS noise overlay for organic texture */
+  /* svelte-ignore css_unused_selector */
   .login-container.noise-css::after {
     content: '';
     position: absolute;

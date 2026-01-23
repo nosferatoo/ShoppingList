@@ -795,7 +795,7 @@
   }
 
   /* Class is applied via JavaScript in handleDragStart() */
-  /* svelte-ignore css-unused-selector */
+  /* svelte-ignore css_unused_selector */
   .list-item.dragging {
     opacity: 0.5;
     border-color: var(--accent-primary);
@@ -845,7 +845,7 @@
   }
 
   /* Class is applied to Lucide icon components */
-  /* svelte-ignore css-unused-selector */
+  /* svelte-ignore css_unused_selector */
   .list-icon {
     /* Layout */
     flex-shrink: 0;

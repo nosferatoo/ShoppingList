@@ -151,7 +151,7 @@
       {#if ingredientsWithQuantity.length > 0}
         <div class="flex flex-col gap-2">
           <span class="text-sm font-medium">Ingredients</span>
-          <ul class="flex max-h-[300px] flex-col gap-2 overflow-y-auto" role="list">
+          <ul class="ingredients-list flex max-h-[300px] flex-col gap-2 overflow-y-auto" role="list">
             {#each ingredientsWithQuantity as { item, quantity } (item.id)}
               {@const isExcluded = excludedItemIds.has(item.id)}
               <li
@@ -205,3 +205,11 @@
     </DialogFooter>
   </DialogContent>
 </Dialog>
+
+<style>
+  /* Firefox scrollbar styling */
+  .ingredients-list {
+    scrollbar-width: auto;
+    scrollbar-color: var(--border-default) transparent;
+  }
+</style>

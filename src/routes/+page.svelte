@@ -1246,6 +1246,7 @@ This action cannot be undone.`}
   }
 
   /* Optional: CSS noise overlay for organic texture */
+  /* svelte-ignore css_unused_selector */
   .main-content.noise-css::after {
     content: '';
     position: absolute;
@@ -1263,6 +1264,7 @@ This action cannot be undone.`}
     z-index: 1;
   }
 
+  /* svelte-ignore css_unused_selector */
   @media (min-width: 1024px) {
     .main-content {
       /* No margin-top on desktop since header is hidden */

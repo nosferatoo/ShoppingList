@@ -919,6 +919,9 @@
                     class="item-wrapper {selectedDish?.id === dishData.dish.id ? 'selected' : ''}"
                     data-dish-id={dishData.dish.id}
                     onclick={() => selectDish(dishData.dish)}
+                    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectDish(dishData.dish); }}
+                    role="button"
+                    tabindex="0"
                   >
                     <div class="item-content">
                       <!-- Dish name container - ensures text truncates and buttons always visible -->
@@ -1036,6 +1039,7 @@
                       class="item-wrapper {highlightedIngredientIds.has(ingredient.id) ? 'highlighted' : ''}"
                       data-ingredient-id={ingredient.id}
                       ondblclick={() => handleRemoveIngredient(ingredient.id)}
+                      role="listitem"
                     >
                       <div class="item-content">
                         <!-- Item text -->
@@ -1135,6 +1139,7 @@
                       <div
                         class="item-wrapper"
                         ondblclick={() => handleAddIngredient(item)}
+                        role="listitem"
                       >
                         <div class="item-content">
                           <!-- Add button (left side) -->
@@ -1351,7 +1356,7 @@
       Assign them to a list to restore the connection.
     </p>
 
-    <div class="max-h-72 overflow-y-auto space-y-2">
+    <div class="scrollable-dialog max-h-72 overflow-y-auto space-y-2">
       {#each orphanedIngredients as orphan (orphan.ingredient.id)}
         <div class="flex items-center justify-between gap-3 p-3 border rounded-md hover:bg-accent">
           <div class="flex-1 min-w-0">
@@ -1452,7 +1457,7 @@
         Found {alternativeResults.length} matching {alternativeResults.length === 1 ? 'item' : 'items'}. Select one to link:
       </p>
 
-      <div class="max-h-64 overflow-y-auto border rounded-md">
+      <div class="scrollable-dialog max-h-64 overflow-y-auto border rounded-md">
         {#each alternativeResults as item (item.id)}
           <button
             class="w-full flex items-center justify-between gap-3 p-3 border-b last:border-b-0 hover:bg-accent text-left transition-colors"
@@ -1699,15 +1704,6 @@
     background-color: var(--accent-muted);
     border: 1px solid var(--accent-primary);
     border-radius: var(--radius-md);
-  }
-
-  .item-wrapper.added {
-    opacity: 0.5;
-    cursor: default;
-  }
-
-  .item-wrapper.added:hover {
-    background-color: transparent;
   }
 
   .item-wrapper.highlighted {
@@ -1986,8 +1982,9 @@
   }
 
   /* Firefox scrollbar styling */
-  .items-container {
-    scrollbar-width: thin;
+  .items-container,
+  .scrollable-dialog {
+    scrollbar-width: auto;
     scrollbar-color: var(--border-default) transparent;
   }
 

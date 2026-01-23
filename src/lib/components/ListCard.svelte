@@ -564,7 +564,7 @@
 
   /* Firefox scrollbar styling (both mobile and desktop) */
   .items-container {
-    scrollbar-width: thin;
+    scrollbar-width: auto;
     scrollbar-color: var(--border-default) transparent;
   }
 

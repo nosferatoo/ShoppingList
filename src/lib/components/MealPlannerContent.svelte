@@ -831,6 +831,10 @@
     overflow-x: hidden;
     padding: var(--space-3) var(--space-3);
     min-height: 0; /* Important for proper scrolling in flex container */
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: auto;
+    scrollbar-color: var(--border-default) transparent;
   }
 
   @media (min-width: 1024px) {

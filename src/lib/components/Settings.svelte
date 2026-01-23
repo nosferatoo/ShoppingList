@@ -511,6 +511,10 @@ This action cannot be undone.`}
 
     /* Smooth scrolling */
     -webkit-overflow-scrolling: touch;
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: auto;
+    scrollbar-color: var(--border-default) transparent;
   }
 
   /* Settings Section */
@@ -523,6 +527,7 @@ This action cannot be undone.`}
     margin-bottom: 0;
   }
 
+  /* svelte-ignore css_unused_selector */
   .section-title {
     /* Typography */
     font-size: var(--text-sm);
@@ -706,6 +711,7 @@ This action cannot be undone.`}
     min-height: 64px; /* Ensure consistent height */
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button {
     /* Reset */
     all: unset;
@@ -764,6 +770,7 @@ This action cannot be undone.`}
     border-bottom-right-radius: 0 !important;
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button-main {
     flex: 1;
     min-width: 0;
@@ -903,44 +910,52 @@ This action cannot be undone.`}
   /* Sync Button States - More Subtle */
 
   /* Synced state - no special styling */
+  /* svelte-ignore css_unused_selector */
   .sync-button.synced {
     background-color: var(--bg-secondary);
     border-color: var(--border-subtle);
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button.synced:hover:not(:disabled) {
     background-color: var(--bg-hover);
     border-color: var(--border-default);
   }
 
   /* Syncing state - no special styling */
+  /* svelte-ignore css_unused_selector */
   .sync-button.syncing {
     background-color: var(--bg-secondary);
     border-color: var(--border-subtle);
   }
 
   /* Offline state - muted */
+  /* svelte-ignore css_unused_selector */
   .sync-button.offline {
     background-color: var(--bg-secondary);
     border-color: var(--border-subtle);
     opacity: 0.7;
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button.offline .sync-icon,
   .sync-button.offline .sync-text {
     color: var(--text-muted);
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button:hover:not(:disabled):not(.syncing):not(.offline) {
     background-color: var(--bg-hover);
     border-color: var(--border-default);
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
   }
 
+  /* svelte-ignore css_unused_selector */
   .sync-button:disabled {
     cursor: not-allowed;
   }
@@ -1008,6 +1023,7 @@ This action cannot be undone.`}
     min-height: 64px;
   }
 
+  /* svelte-ignore css_unused_selector */
   .theme-button {
     /* Reset */
     all: unset;
@@ -1066,6 +1082,7 @@ This action cannot be undone.`}
     border-bottom-right-radius: 0 !important;
   }
 
+  /* svelte-ignore css_unused_selector */
   .theme-button-main {
     flex: 1;
     min-width: 0;
@@ -1076,11 +1093,13 @@ This action cannot be undone.`}
     border-bottom-right-radius: 0;
   }
 
+  /* svelte-ignore css_unused_selector */
   .theme-button:hover:not(:disabled) {
     background-color: var(--bg-hover);
     border-color: var(--border-default);
   }
 
+  /* svelte-ignore css_unused_selector */
   .theme-button:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;

@@ -86,7 +86,7 @@
 
   /* Firefox scrollbar styling */
   .master-list-container {
-    scrollbar-width: thin;
+    scrollbar-width: auto;
     scrollbar-color: var(--border-default) transparent;
   }
 

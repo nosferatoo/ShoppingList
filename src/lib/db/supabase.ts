@@ -1,7 +1,7 @@
 // Supabase client setup for SvelteKit SSR
 // Uses @supabase/ssr for proper server-side rendering and cookie handling
 
-import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr';
+import { createBrowserClient, createServerClient } from '@supabase/ssr';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import type { Database } from '$lib/types';
 
