@@ -118,8 +118,11 @@
     right: 0;
     z-index: 50;
 
-    /* Size */
-    height: 64px;
+    /* Size - include safe area in total height */
+    height: calc(64px + env(safe-area-inset-top, 0px));
+
+    /* Push content below notch/Dynamic Island */
+    padding-top: env(safe-area-inset-top, 0px);
 
     /* Background */
     background-color: var(--bg-secondary);

@@ -1204,8 +1204,8 @@ This action cannot be undone.`}
     position: relative;
     overflow: hidden;
 
-    /* Spacing - account for fixed header on mobile */
-    margin-top: 64px;
+    /* Spacing - account for fixed header on mobile (includes safe area for notch/Dynamic Island) */
+    margin-top: calc(64px + env(safe-area-inset-top, 0px));
   }
 
   /* Aurora background effect - desktop only */
