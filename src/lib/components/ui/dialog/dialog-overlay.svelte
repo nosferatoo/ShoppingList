@@ -26,5 +26,12 @@
 			backdrop-filter: blur(8px);
 			-webkit-backdrop-filter: blur(8px);
 		}
+
+		/* Chrome desktop: remove backdrop-filter for performance */
+		:global(body.chromium) :global(.dialog-overlay-blur) {
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
+			background-color: rgba(0, 0, 0, 0.7);
+		}
 	}
 </style>

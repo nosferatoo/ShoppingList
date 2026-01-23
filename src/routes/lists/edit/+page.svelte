@@ -1072,6 +1072,14 @@
     animation: fade-in var(--transition-fast);
   }
 
+  /* Chrome desktop: remove backdrop-filter for performance */
+  @media (min-width: 1024px) {
+    :global(body.chromium) .modal-overlay {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
   .modal {
     /* Size */
     width: 100%;

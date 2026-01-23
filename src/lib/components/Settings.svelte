@@ -387,6 +387,15 @@ This action cannot be undone.`}
     animation: fadeIn var(--transition-normal) ease-out;
   }
 
+  /* Chrome desktop: remove backdrop-filter for performance */
+  @media (min-width: 1024px) {
+    :global(body.chromium) .backdrop {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

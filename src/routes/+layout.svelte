@@ -37,6 +37,12 @@
 
   // Initialize app on mount
   onMount(() => {
+    // Detect Chromium browsers for performance optimizations
+    // Chrome desktop has issues with backdrop-filter blur
+    if (/Chrome|Chromium/.test(navigator.userAgent)) {
+      document.body.classList.add('chromium');
+    }
+
     // Register service worker for PWA offline support
     registerServiceWorker();
 

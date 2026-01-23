@@ -265,13 +265,22 @@
       width: 600px;
       gap: var(--space-2) !important; /* Reduce gap between header and content */
 
-      /* Semi-transparent background with frosted glass effect */
-      background-color: rgba(26, 26, 26, 0.7) !important;
-      backdrop-filter: blur(12px) saturate(150%);
-      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      /* Semi-transparent background with subtle glass effect */
+      background-color: rgba(26, 26, 26, 0.85) !important;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
 
       /* Enhanced border for glass effect */
       border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  /* Chrome desktop: remove backdrop-filter to avoid double-compositing with aurora */
+  @media (min-width: 1024px) {
+    :global(.chromium) :global(.list-card) {
+      background-color: rgba(26, 26, 26, 0.95) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
   }
 

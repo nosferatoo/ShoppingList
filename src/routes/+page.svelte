@@ -63,6 +63,7 @@
   let deletingItemListName = $state<string>('');
   let isLandscape = $state(false);
   let viewMode = $state<'lists' | 'master' | 'meals'>('lists');
+  let isChromium = $state(false);
 
   // Manual swipe detection
   let touchStartX = $state(0);
@@ -110,6 +111,13 @@
       window.removeEventListener('resize', checkOrientation);
       window.removeEventListener('orientationchange', checkOrientation);
     };
+  });
+
+  // Detect Chromium-based browsers (Chrome, Edge, Opera) for performance optimizations
+  // These browsers struggle with animated blur filters
+  $effect(() => {
+    if (!browser) return;
+    isChromium = /Chrome|Chromium/.test(navigator.userAgent);
   });
 
   // Derived
@@ -788,7 +796,7 @@
   />
 
   <!-- Main content -->
-  <main bind:this={mainContentRef} class="main-content">
+  <main bind:this={mainContentRef} class="main-content" class:chromium={isChromium}>
     <!-- Floating controls - Always visible on desktop -->
     <div class="desktop-floating-controls">
       <!-- Floating controls - Top Left (User Info & Dropdown) -->
@@ -1328,6 +1336,46 @@ This action cannot be undone.`}
 
       /* Slow, subtle animation */
       animation: aurora-drift var(--duration, 18s) ease-in-out infinite alternate;
+    }
+
+    /* Chromium desktop: disable blur and use soft gradients instead */
+    .main-content.chromium::before {
+      animation: none;
+      filter: none;
+      mix-blend-mode: normal;
+      will-change: auto;
+
+      /* Larger, softer gradients that look blurry without filter:blur */
+      background:
+        radial-gradient(
+          ellipse 90vw 80vh at 15% 25%,
+          rgba(249, 115, 22, 0.15) 0%,
+          rgba(249, 115, 22, 0.08) 20%,
+          rgba(249, 115, 22, 0.04) 40%,
+          rgba(249, 115, 22, 0.01) 60%,
+          transparent 80%
+        ),
+        radial-gradient(
+          ellipse 90vw 80vh at 85% 75%,
+          rgba(20, 184, 166, 0.12) 0%,
+          rgba(20, 184, 166, 0.06) 20%,
+          rgba(20, 184, 166, 0.03) 40%,
+          transparent 70%
+        ),
+        radial-gradient(
+          ellipse 90vw 80vh at 60% 35%,
+          rgba(168, 85, 247, 0.14) 0%,
+          rgba(168, 85, 247, 0.07) 20%,
+          rgba(168, 85, 247, 0.03) 40%,
+          transparent 70%
+        ),
+        radial-gradient(
+          ellipse 90vw 80vh at 35% 75%,
+          rgba(59, 130, 246, 0.14) 0%,
+          rgba(59, 130, 246, 0.07) 20%,
+          rgba(59, 130, 246, 0.03) 40%,
+          transparent 70%
+        );
     }
   }
 
