@@ -90,6 +90,41 @@
     scrollbar-color: var(--border-default) transparent;
   }
 
+  /* Mobile: scrollable area fills remaining space */
+  @media (max-width: 1023px) {
+    .master-list-container {
+      /* Use absolute positioning to fill parent (same approach as list view) */
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: env(safe-area-inset-bottom, 0px);
+
+      /* CRITICAL: Use 'scroll' not 'auto' - forces element to always be a scroll container
+         even when content doesn't overflow. This ensures overscroll-behavior works. */
+      overflow-y: scroll !important;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+
+      /* Allow vertical scroll/pan within this container */
+      touch-action: pan-y;
+
+      /* PREVENT SCROLL BUBBLING - only works when element IS a scroll container */
+      overscroll-behavior: contain;
+      overscroll-behavior-y: contain;
+    }
+
+    /* Prevent ListItem wrappers from collapsing in flex column */
+    .master-list-container :global(.item-wrapper) {
+      flex-shrink: 0;
+    }
+
+    /* Ensure item content maintains minimum height */
+    .master-list-container :global(.item-content) {
+      min-height: 48px !important;
+    }
+  }
+
   /* List divider - Pill Badge Style */
   .list-divider {
     /* Layout */
