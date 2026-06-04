@@ -11,16 +11,17 @@
   import { isActiveDish } from '$lib/types';
   import { browser } from '$app/environment';
 
+  import { apiGet, apiPost, apiPatch, apiDelete } from '$lib/api/client';
+
   // Props
   interface Props {
-    supabase: import('@supabase/supabase-js').SupabaseClient;
     userId: string;
     onConfirmMenu?: () => void;
     onClose?: () => void;
     showCloseButton?: boolean;
   }
 
-  let { supabase, userId, onConfirmMenu, onClose, showCloseButton = false }: Props = $props();
+  let { userId, onConfirmMenu, onClose, showCloseButton = false }: Props = $props();
 
   // State
   let menus = $state<MenuWithDetails[]>([]);
@@ -188,15 +189,9 @@
     isLoading = true;
     try {
       // Load dishes (active only)
-      const { data: dishesData, error: dishesError } = await supabase.rpc('get_dishes_with_ingredients');
+      const allDishes = await apiGet<DishWithIngredients[]>('/api/dishes');
 
-      if (dishesError) {
-        console.error('Error loading dishes:', dishesError);
-        throw dishesError;
-      }
-
-      const allDishes: DishWithIngredients[] = dishesData || [];
-      dishes = allDishes
+      dishes = (allDishes || [])
         .filter(d => isActiveDish(d.dish))
         .map(d => d.dish)
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -211,15 +206,7 @@
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + 30);
 
-      const { data: menusData, error: menusError } = await supabase.rpc('get_menus_with_dishes', {
-        p_start_date: formatDateISO(startDate),
-        p_end_date: formatDateISO(endDate)
-      });
-
-      if (menusError) {
-        console.error('Error loading menus:', menusError);
-        throw menusError;
-      }
+      const menusData = await apiGet<MenuWithDetails[]>(`/api/menus?from=${formatDateISO(startDate)}&to=${formatDateISO(endDate)}`);
 
       menus = menusData || [];
 
@@ -264,15 +251,7 @@
       if (dishId === null) {
         // Remove menu if exists
         if (existingMenu) {
-          const { error } = await supabase
-            .from('menus')
-            .delete()
-            .eq('id', existingMenu.menu.id);
-
-          if (error) {
-            console.error('Error deleting menu:', error);
-            throw error;
-          }
+          await apiDelete(`/api/menus/${existingMenu.menu.id}`);
 
           // Update local state
           menus = menus.filter(m => m.menu.id !== existingMenu.menu.id);
@@ -284,19 +263,11 @@
 
         if (existingMenu) {
           // Update existing menu
-          const { error } = await supabase
-            .from('menus')
-            .update({
-              dish_id: dishId,
-              dish_name: dish.name,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingMenu.menu.id);
-
-          if (error) {
-            console.error('Error updating menu:', error);
-            throw error;
-          }
+          await apiPatch(`/api/menus/${existingMenu.menu.id}`, {
+            dish_id: dishId,
+            dish_name: dish.name,
+            updated_at: new Date().toISOString()
+          });
 
           // Update local state
           menus = menus.map(m => {
@@ -316,20 +287,11 @@
           });
         } else {
           // Create new menu
-          const { data: newMenu, error } = await supabase
-            .from('menus')
-            .insert({
-              planned_date: dateISO,
-              dish_id: dishId,
-              dish_name: dish.name
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error('Error creating menu:', error);
-            throw error;
-          }
+          const newMenu = await apiPost<Menu>('/api/menus', {
+            planned_date: dateISO,
+            dish_id: dishId,
+            dish_name: dish.name
+          });
 
           // Add to local state
           menus = [
@@ -353,15 +315,7 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('menus')
-        .delete()
-        .eq('id', menuId);
-
-      if (error) {
-        console.error('Error deleting menu:', error);
-        throw error;
-      }
+      await apiDelete(`/api/menus/${menuId}`);
 
       // Update local state
       menus = menus.filter(m => m.menu.id !== menuId);

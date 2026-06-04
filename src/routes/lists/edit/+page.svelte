@@ -1,12 +1,12 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { ArrowLeft, GripVertical, ShoppingCart, CheckCircle, Trash2, Plus, Pencil } from 'lucide-svelte';
+  import { apiPost, apiPatch } from '$lib/api/client';
   import type { ListWithItems, List, ListType } from '$lib/types';
 
   // Props
   interface Props {
     data: {
-      supabase: import('@supabase/supabase-js').SupabaseClient;
       userId: string;
       lists: ListWithItems[];
     };
@@ -88,15 +88,7 @@
         position: index
       }));
 
-      // Call Supabase function to save positions
-      const { error } = await data.supabase.rpc('save_list_positions', {
-        p_positions: positions
-      });
-
-      if (error) {
-        console.error('Error saving list order:', error);
-        throw error;
-      }
+      await apiPost('/api/lists/positions', { p_positions: positions });
     } catch (err) {
       console.error('Failed to save list order:', err);
     }
@@ -140,21 +132,12 @@
 
     try {
       // Create new list
-      const { data: newList, error } = await data.supabase
-        .from('lists')
-        .insert({
-          title,
-          type: newListType,
-          owner_id: data.userId,
-          is_shared: newListIsShared
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating list:', error);
-        throw error;
-      }
+      const newList = await apiPost<List>('/api/lists', {
+        title,
+        type: newListType,
+        owner_id: data.userId,
+        is_shared: newListIsShared
+      });
 
       // Add to local state
       lists = [
@@ -209,20 +192,12 @@
 
     try {
       // Update list title, type, and shared status
-      const { error } = await data.supabase
-        .from('lists')
-        .update({
-          title,
-          type: renameType,
-          is_shared: renameIsShared,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedList.id);
-
-      if (error) {
-        console.error('Error updating list:', error);
-        throw error;
-      }
+      await apiPatch(`/api/lists/${selectedList.id}`, {
+        title,
+        type: renameType,
+        is_shared: renameIsShared,
+        updated_at: new Date().toISOString()
+      });
 
       // Update local state
       lists = lists.map(item => {
@@ -269,18 +244,10 @@
 
     try {
       // Soft delete the list
-      const { error } = await data.supabase
-        .from('lists')
-        .update({
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', listToDelete.id);
-
-      if (error) {
-        console.error('Error deleting list:', error);
-        throw error;
-      }
+      await apiPatch(`/api/lists/${listToDelete.id}`, {
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
       // Remove from local state
       lists = lists.filter(item => item.list.id !== listToDelete!.id);

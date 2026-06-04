@@ -1,5 +1,5 @@
 // PWA service worker for offline functionality
-// Implements cache-first strategy for app assets, skips Supabase API calls
+// Implements cache-first strategy for app assets, skips API calls
 
 /// <reference types="@sveltejs/kit" />
 /// <reference lib="webworker" />
@@ -79,7 +79,7 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
 /**
  * Fetch event: handle requests with appropriate caching strategy
  * - Cache-first for app assets
- * - Network-only for Supabase API calls (no caching)
+ * - Network-only for API calls (no caching)
  * - Network-first with cache fallback for everything else
  */
 self.addEventListener('fetch', (event: FetchEvent) => {
@@ -91,9 +91,9 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return;
   }
 
-  // Skip Supabase API calls - never cache these
-  if (url.hostname.includes('supabase')) {
-    return; // Let browser handle it normally
+  // Skip API calls, auth endpoints, and health checks - never cache these
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') || url.pathname === '/healthz') {
+    return;
   }
 
   // Skip chrome-extension and other special schemes

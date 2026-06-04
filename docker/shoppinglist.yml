@@ -1,0 +1,50 @@
+# ShoppingList — Production Compose for UnRAID
+#
+# Location: /mnt/user/appdata/compose/shoppinglist.yml
+# Requires: /mnt/user/appdata/compose/.env with SL_* variables
+#
+# Prerequisites:
+#   - PostgreSQL with shoppinglist DB created
+#   - Images pushed to registry.tomaz.xyz
+#
+# Deploy:
+#   cd /mnt/user/appdata/compose
+#   docker compose -f shoppinglist.yml up -d
+#
+# Health check:
+#   curl http://192.168.1.20:8230/healthz
+
+name: shoppinglist
+
+services:
+  shoppinglist:
+    image: registry.tomaz.xyz/shoppinglist:1.0.0
+    container_name: shoppinglist
+    ports:
+      - "8230:3000"
+    environment:
+      NODE_ENV: "production"
+      DATABASE_URL: "postgresql://${SL_DB_USER}:${SL_DB_PASSWORD}@postgresql:5432/${SL_DB_NAME}"
+      SESSION_SECRET: "${SL_SESSION_SECRET}"
+      ORIGIN: "https://shopping.tomaz.xyz"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - apps_network
+      - db_network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+networks:
+  apps_network:
+    external: true
+  db_network:
+    external: true

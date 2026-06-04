@@ -18,17 +18,18 @@
   import type { ListWithItems, List, ListType } from '$lib/types';
   import { db } from '$lib/db/local';
 
+  import { apiPost, apiPatch } from '$lib/api/client';
+
   // Props
   interface Props {
     isOpen?: boolean;
     onClose?: () => void;
-    supabase: import('@supabase/supabase-js').SupabaseClient;
     userId: string;
     initialLists: ListWithItems[];
     onListsUpdated?: (lists: ListWithItems[]) => void;
   }
 
-  let { isOpen = false, onClose, supabase, userId, initialLists, onListsUpdated }: Props = $props();
+  let { isOpen = false, onClose, userId, initialLists, onListsUpdated }: Props = $props();
 
   // State
   let lists = $state<ListWithItems[]>(initialLists);
@@ -114,14 +115,7 @@
         position: index
       }));
 
-      const { error } = await supabase.rpc('save_list_positions', {
-        p_positions: positions
-      });
-
-      if (error) {
-        console.error('Error saving list order:', error);
-        throw error;
-      }
+      await apiPost('/api/lists/positions', { p_positions: positions });
 
       for (const pos of positions) {
         const existing = await db.userListSettings
@@ -189,22 +183,13 @@
     isSaving = true;
 
     try {
-      const { data: newList, error } = await supabase
-        .from('lists')
-        .insert({
-          title,
-          type: newListType,
-          owner_id: userId,
-          is_shared: newListIsShared,
-          is_food: newListIsFood
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating list:', error);
-        throw error;
-      }
+      const newList = await apiPost<List>('/api/lists', {
+        title,
+        type: newListType,
+        owner_id: userId,
+        is_shared: newListIsShared,
+        is_food: newListIsFood
+      });
 
       lists = [
         ...lists,
@@ -258,21 +243,13 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('lists')
-        .update({
-          title,
-          type: renameType,
-          is_shared: renameIsShared,
-          is_food: renameIsFood,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedList.id);
-
-      if (error) {
-        console.error('Error updating list:', error);
-        throw error;
-      }
+      await apiPatch(`/api/lists/${selectedList.id}`, {
+        title,
+        type: renameType,
+        is_shared: renameIsShared,
+        is_food: renameIsFood,
+        updated_at: new Date().toISOString()
+      });
 
       lists = lists.map(item => {
         if (item.list.id === selectedList!.id) {
@@ -319,18 +296,10 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('lists')
-        .update({
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', listToDelete.id);
-
-      if (error) {
-        console.error('Error deleting list:', error);
-        throw error;
-      }
+      await apiPatch(`/api/lists/${listToDelete.id}`, {
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
       lists = lists.filter(item => item.list.id !== listToDelete!.id);
       await saveListOrder();

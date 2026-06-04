@@ -1,11 +1,9 @@
 // Sync status state (Svelte 5 runes)
-// Manages sync state, triggers, and realtime subscriptions
+// Manages sync state, triggers, and SSE subscriptions
 
 import { browser } from '$app/environment';
-import { sync, initSyncListeners, manualSync, clearCacheAndSync, subscribeToChanges, getLastSyncTime, type SyncResult } from '$lib/db/sync';
+import { sync, manualSync, clearCacheAndSync, getLastSyncTime, type SyncResult } from '$lib/db/sync';
 import { db } from '$lib/db/local';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '$lib/types';
 
 // ============================================================================
 // STATE
@@ -19,7 +17,6 @@ interface SyncState {
   pendingCount: number;
   error: string | null;
   hasRemoteChanges: boolean;
-  supabase: SupabaseClient<Database> | null;
 }
 
 let state = $state<SyncState>({
@@ -29,12 +26,17 @@ let state = $state<SyncState>({
   lastSyncAt: null,
   pendingCount: 0,
   error: null,
-  hasRemoteChanges: false,
-  supabase: null
+  hasRemoteChanges: false
 });
 
-// Realtime unsubscribe function
-let realtimeUnsubscribe: (() => void) | null = null;
+// EventSource and interval references
+let eventSource: EventSource | null = null;
+let safetyNetInterval: ReturnType<typeof setInterval> | null = null;
+let currentUserId: string | null = null;
+
+// Network listener references for cleanup
+let onlineHandler: (() => void) | null = null;
+let offlineHandler: (() => void) | null = null;
 
 // ============================================================================
 // SYNC STORE
@@ -42,7 +44,7 @@ let realtimeUnsubscribe: (() => void) | null = null;
 
 /**
  * Sync store using Svelte 5 runes
- * Manages sync state, online/offline status, and realtime subscriptions
+ * Manages sync state, online/offline status, and SSE subscriptions
  */
 export const syncStore = {
   // ============================================================================
@@ -83,33 +85,31 @@ export const syncStore = {
 
   /**
    * Initialize sync system
-   * Sets up online/offline listeners and sync triggers
-   *
-   * @param userId - Current user's ID
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
+   * Sets up online/offline listeners, EventSource, and safety-net interval
    */
-  async initialize(userId: string, supabase: SupabaseClient<Database>): Promise<void> {
+  initialize(userId: string): void {
     if (!browser) return;
 
-    // Store supabase client
-    state.supabase = supabase;
+    currentUserId = userId;
 
     // Set up online/offline status listeners
     this.setupNetworkListeners();
 
-    // Initialize automatic sync listeners (visibility change, online event)
-    initSyncListeners((result) => {
-      this.handleSyncComplete(result);
-    });
+    // Set up EventSource for SSE
+    this.setupEventSource();
 
-    // Set up realtime subscriptions
-    this.setupRealtimeSubscriptions(userId);
+    // Set up 5-minute safety-net interval
+    safetyNetInterval = setInterval(() => {
+      if (state.isOnline && !state.isSyncing && currentUserId) {
+        this.performSync().catch((error) => {
+          console.error('Safety-net sync failed:', error);
+        });
+      }
+    }, 5 * 60 * 1000);
 
-    // Update pending count
-    await this.updatePendingCount();
-
-    // Get last sync time
-    await this.updateLastSyncTime();
+    // Update pending count and last sync time
+    this.updatePendingCount();
+    this.updateLastSyncTime();
   },
 
   /**
@@ -121,50 +121,45 @@ export const syncStore = {
     // Set initial online status
     state.isOnline = navigator.onLine;
 
-    // Listen for online event
-    window.addEventListener('online', () => {
+    // Create handlers we can remove later
+    onlineHandler = () => {
       state.isOnline = true;
       state.error = null;
-    });
+    };
 
-    // Listen for offline event
-    window.addEventListener('offline', () => {
+    offlineHandler = () => {
       state.isOnline = false;
-    });
+    };
+
+    window.addEventListener('online', onlineHandler);
+    window.addEventListener('offline', offlineHandler);
   },
 
   /**
-   * Set up realtime subscriptions for lists and items
+   * Set up EventSource for server-sent events
    */
-  setupRealtimeSubscriptions(userId: string): void {
-    if (!browser || !state.supabase) return;
+  setupEventSource(): void {
+    if (!browser) return;
 
-    // Unsubscribe from previous subscription if exists
-    if (realtimeUnsubscribe) {
-      realtimeUnsubscribe();
-      realtimeUnsubscribe = null;
+    // Close existing EventSource if any
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
 
-    // Subscribe to changes
-    realtimeUnsubscribe = subscribeToChanges(state.supabase, userId, () => {
-      // Remote change detected
+    eventSource = new EventSource('/api/events');
+
+    eventSource.addEventListener('change', () => {
       state.hasRemoteChanges = true;
-
-      // Trigger a callback or event that UI can listen to
-      if (browser) {
-        window.dispatchEvent(new CustomEvent('remote-change'));
-      }
+      // Sync fresh data from server into IndexedDB, then notify UI
+      this.performSync().catch((error) => {
+        console.error('SSE-triggered sync failed:', error);
+      });
     });
-  },
 
-  /**
-   * Unsubscribe from realtime changes
-   */
-  unsubscribeRealtime(): void {
-    if (realtimeUnsubscribe) {
-      realtimeUnsubscribe();
-      realtimeUnsubscribe = null;
-    }
+    eventSource.onerror = () => {
+      console.error('EventSource error, browser will auto-reconnect');
+    };
   },
 
   /**
@@ -180,14 +175,7 @@ export const syncStore = {
       throw new Error('Cannot sync while offline');
     }
 
-    if (!state.supabase) {
-      state.error = 'Supabase client not initialized';
-      throw new Error('Supabase client not initialized');
-    }
-
-    // Verify user is authenticated before attempting sync
-    const { data: { user }, error: authError } = await state.supabase.auth.getUser();
-    if (authError || !user) {
+    if (!currentUserId) {
       state.error = 'Not authenticated';
       throw new Error('Not authenticated');
     }
@@ -196,7 +184,7 @@ export const syncStore = {
     state.error = null;
 
     try {
-      const result = await manualSync(state.supabase);
+      const result = await manualSync(currentUserId);
       this.handleSyncComplete(result);
       return result;
     } catch (error) {
@@ -222,14 +210,7 @@ export const syncStore = {
       throw new Error('Cannot sync while offline');
     }
 
-    if (!state.supabase) {
-      state.error = 'Supabase client not initialized';
-      throw new Error('Supabase client not initialized');
-    }
-
-    // Verify user is authenticated before attempting sync
-    const { data: { user }, error: authError } = await state.supabase.auth.getUser();
-    if (authError || !user) {
+    if (!currentUserId) {
       state.error = 'Not authenticated';
       throw new Error('Not authenticated');
     }
@@ -238,7 +219,7 @@ export const syncStore = {
     state.error = null;
 
     try {
-      const result = await clearCacheAndSync(state.supabase);
+      const result = await clearCacheAndSync(currentUserId);
       this.handleSyncComplete(result);
       return result;
     } catch (error) {
@@ -263,7 +244,7 @@ export const syncStore = {
     this.updatePendingCount();
 
     // Dispatch event for UI updates
-    if (browser && result.hasRemoteChanges) {
+    if (browser) {
       window.dispatchEvent(new CustomEvent('sync-complete', { detail: result }));
     }
   },
@@ -310,18 +291,28 @@ export const syncStore = {
    * Clean up subscriptions and listeners
    */
   cleanup(): void {
-    this.unsubscribeRealtime();
-    state.supabase = null;
+    // Close EventSource
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
+    // Clear safety-net interval
+    if (safetyNetInterval) {
+      clearInterval(safetyNetInterval);
+      safetyNetInterval = null;
+    }
+
+    // Remove network listeners
+    if (onlineHandler) {
+      window.removeEventListener('online', onlineHandler);
+      onlineHandler = null;
+    }
+    if (offlineHandler) {
+      window.removeEventListener('offline', offlineHandler);
+      offlineHandler = null;
+    }
+
+    currentUserId = null;
   }
 };
-
-// ============================================================================
-// LEGACY EXPORT (for backwards compatibility)
-// ============================================================================
-
-/**
- * @deprecated Use syncStore instead
- */
-export function createSyncStore() {
-  return syncStore;
-}

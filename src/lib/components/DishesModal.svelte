@@ -30,16 +30,17 @@
   } from '$lib/types';
   import { isFoodList, isActiveItem } from '$lib/types';
 
+  import { apiGet, apiPost, apiPatch, apiDelete } from '$lib/api/client';
+
   // Props
   interface Props {
     isOpen?: boolean;
     onClose?: () => void;
-    supabase: import('@supabase/supabase-js').SupabaseClient;
     userId: string;
     lists: ListWithItems[];
   }
 
-  let { isOpen = false, onClose, supabase, userId, lists }: Props = $props();
+  let { isOpen = false, onClose, userId, lists }: Props = $props();
 
   // State
   let dishes = $state<DishWithIngredients[]>([]);
@@ -196,12 +197,7 @@
   async function loadDishes() {
     isLoading = true;
     try {
-      const { data, error } = await supabase.rpc('get_dishes_with_ingredients');
-
-      if (error) {
-        console.error('Error loading dishes:', error);
-        throw error;
-      }
+      const data = await apiGet<DishWithIngredients[]>('/api/dishes');
 
       dishes = data || [];
 
@@ -219,8 +215,7 @@
   async function loadOrphanedIngredients() {
     loadingOrphaned = true;
     try {
-      const { data, error } = await supabase.rpc('get_orphaned_ingredients');
-      if (error) throw error;
+      const data = await apiGet<OrphanedIngredient[]>('/api/dishes/orphaned');
       orphanedIngredients = data || [];
     } catch (error) {
       console.error('Failed to load orphaned ingredients:', error);
@@ -267,19 +262,11 @@
     isSaving = true;
 
     try {
-      const { data: newDish, error } = await supabase
-        .from('dishes')
-        .insert({
-          name,
-          link: null,
-          owner_id: userId
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
+      const newDish = await apiPost<Dish>('/api/dishes', {
+        name,
+        link: null,
+        owner_id: userId
+      });
 
       // Add to local state
       const newDishWithIngredients: DishWithIngredients = {
@@ -333,18 +320,10 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('dishes')
-        .update({
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dishToDelete.id);
-
-      if (error) {
-        console.error('Error deleting dish:', error);
-        throw error;
-      }
+      await apiPatch(`/api/dishes/${dishToDelete.id}`, {
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
       // Remove from local state
       dishes = dishes.filter(d => d.dish.id !== dishToDelete!.id);
@@ -406,19 +385,11 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('dishes')
-        .update({
-          name: trimmedName,
-          link: trimmedLink,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dishToEdit.id);
-
-      if (error) {
-        console.error('Error updating dish:', error);
-        throw error;
-      }
+      await apiPatch(`/api/dishes/${dishToEdit.id}`, {
+        name: trimmedName,
+        link: trimmedLink,
+        updated_at: new Date().toISOString()
+      });
 
       // Update local state
       dishes = dishes.map(d => {
@@ -458,20 +429,10 @@
     isSaving = true;
 
     try {
-      const { data: newIngredient, error } = await supabase
-        .from('dish_ingredients')
-        .insert({
-          dish_id: selectedDish.id,
-          item_id: item.id,
-          item_text: item.text
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding ingredient:', error);
-        throw error;
-      }
+      const newIngredient = await apiPost<DishIngredient>(`/api/dishes/${selectedDish.id}/ingredients`, {
+        item_id: item.id,
+        item_text: item.text
+      });
 
       // Update local state
       selectedDishIngredients = [
@@ -506,15 +467,7 @@
     isSaving = true;
 
     try {
-      const { error } = await supabase
-        .from('dish_ingredients')
-        .delete()
-        .eq('id', ingredientId);
-
-      if (error) {
-        console.error('Error removing ingredient:', error);
-        throw error;
-      }
+      await apiDelete(`/api/dishes/${selectedDish.id}/ingredients/${ingredientId}`);
 
       // Update local state
       selectedDishIngredients = selectedDishIngredients.filter(
@@ -564,36 +517,17 @@
 
     try {
       // Add item to shopping list in checked state
-      const { data: newItem, error: itemError } = await supabase
-        .from('items')
-        .insert({
-          list_id: selectedListId,
-          text: newItemName.trim(),
-          is_checked: true
-        })
-        .select()
-        .single();
-
-      if (itemError) {
-        console.error('Error adding item:', itemError);
-        throw itemError;
-      }
+      const newItem = await apiPost<Item>('/api/items', {
+        list_id: selectedListId,
+        text: newItemName.trim(),
+        is_checked: true
+      });
 
       // Add item to the ingredients list of the selected dish
-      const { data: newIngredient, error: ingredientError } = await supabase
-        .from('dish_ingredients')
-        .insert({
-          dish_id: selectedDish.id,
-          item_id: newItem.id,
-          item_text: newItem.text
-        })
-        .select()
-        .single();
-
-      if (ingredientError) {
-        console.error('Error adding ingredient:', ingredientError);
-        throw ingredientError;
-      }
+      const newIngredient = await apiPost<DishIngredient>(`/api/dishes/${selectedDish.id}/ingredients`, {
+        item_id: newItem.id,
+        item_text: newItem.text
+      });
 
       // Update local state - add to ingredients list
       selectedDishIngredients = [
@@ -637,25 +571,16 @@
     isAssigning = true;
     try {
       // 1. Create new item in selected list (checked by default)
-      const { data: newItem, error: itemError } = await supabase
-        .from('items')
-        .insert({
-          list_id: selectedAssignListId,
-          text: assigningIngredient.ingredient.item_text,
-          is_checked: true,
-        })
-        .select()
-        .single();
-
-      if (itemError) throw itemError;
+      const newItem = await apiPost<Item>('/api/items', {
+        list_id: selectedAssignListId,
+        text: assigningIngredient.ingredient.item_text,
+        is_checked: true,
+      });
 
       // 2. Update dish_ingredient to point to new item
-      const { error: updateError } = await supabase
-        .from('dish_ingredients')
-        .update({ item_id: newItem.id })
-        .eq('id', assigningIngredient.ingredient.id);
-
-      if (updateError) throw updateError;
+      await apiPatch(`/api/dishes/${assigningIngredient.dish.id}/ingredients/${assigningIngredient.ingredient.id}`, {
+        item_id: newItem.id
+      });
 
       // 3. Remove from orphaned list
       orphanedIngredients = orphanedIngredients.filter(
@@ -676,12 +601,7 @@
   // Delete orphaned ingredient from dish
   async function handleDeleteOrphanedIngredient(orphan: OrphanedIngredient) {
     try {
-      const { error } = await supabase
-        .from('dish_ingredients')
-        .delete()
-        .eq('id', orphan.ingredient.id);
-
-      if (error) throw error;
+      await apiDelete(`/api/dishes/${orphan.dish.id}/ingredients/${orphan.ingredient.id}`);
 
       // Remove from orphanedIngredients list
       orphanedIngredients = orphanedIngredients.filter(
@@ -794,15 +714,10 @@
     isLinkingAlternative = true;
     try {
       // Update dish_ingredient to point to existing item
-      const { error } = await supabase
-        .from('dish_ingredients')
-        .update({
-          item_id: item.id,
-          item_text: item.text
-        })
-        .eq('id', searchingOrphan.ingredient.id);
-
-      if (error) throw error;
+      await apiPatch(`/api/dishes/${searchingOrphan.dish.id}/ingredients/${searchingOrphan.ingredient.id}`, {
+        item_id: item.id,
+        item_text: item.text
+      });
 
       // Remove from orphaned list
       orphanedIngredients = orphanedIngredients.filter(

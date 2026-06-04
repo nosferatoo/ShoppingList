@@ -14,12 +14,11 @@
   interface Props {
     isOpen?: boolean;
     onClose?: () => void;
-    supabase: import('@supabase/supabase-js').SupabaseClient;
     userId: string;
     onConfirmMenu?: () => void;
   }
 
-  let { isOpen = false, onClose, supabase, userId, onConfirmMenu }: Props = $props();
+  let { isOpen = false, onClose, userId, onConfirmMenu }: Props = $props();
 
   // Handle dialog open change
   function handleOpenChange(open: boolean) {
@@ -42,7 +41,6 @@
 
     <!-- Reusable Content Component -->
     <MealPlannerContent
-      {supabase}
       {userId}
       {onConfirmMenu}
       {onClose}

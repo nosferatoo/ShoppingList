@@ -1,28 +1,23 @@
 // Authentication state management using Svelte 5 runes
 // Handles user session, login, logout, and auth state
 
-import { goto, invalidate } from '$app/navigation';
 import { db } from '$lib/db/local';
-import type { User, Session, SupabaseClient } from '@supabase/supabase-js';
-import type { LoginFormData, Database } from '$lib/types';
 
 // ============================================================================
 // STATE
 // ============================================================================
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  userId: string | null;
+  userEmail: string | null;
   isLoading: boolean;
-  isInitialized: boolean;
   error: string | null;
 }
 
 let state = $state<AuthState>({
-  user: null,
-  session: null,
+  userId: null,
+  userEmail: null,
   isLoading: false,
-  isInitialized: false,
   error: null
 });
 
@@ -30,9 +25,7 @@ let state = $state<AuthState>({
 // DERIVED STATE
 // ============================================================================
 
-let isAuthenticated = $derived(state.session !== null && state.user !== null);
-let userId = $derived(state.user?.id ?? null);
-let userEmail = $derived(state.user?.email ?? null);
+let isAuthenticated = $derived(state.userId !== null);
 
 // ============================================================================
 // AUTH STORE
@@ -47,32 +40,20 @@ export const authStore = {
   // GETTERS
   // ============================================================================
 
-  get user() {
-    return state.user;
+  get userId() {
+    return state.userId;
   },
 
-  get session() {
-    return state.session;
+  get userEmail() {
+    return state.userEmail;
   },
 
   get isLoading() {
     return state.isLoading;
   },
 
-  get isInitialized() {
-    return state.isInitialized;
-  },
-
   get isAuthenticated() {
     return isAuthenticated;
-  },
-
-  get userId() {
-    return userId;
-  },
-
-  get userEmail() {
-    return userEmail;
   },
 
   get error() {
@@ -84,108 +65,41 @@ export const authStore = {
   // ============================================================================
 
   /**
-   * Initialize auth state from session
-   * Call this once on app load, or when session changes
-   * NOTE: Always verifies user with getUser() for security, even if initialSession is provided
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
-   * @param initialSession - Initial session from server (can be null)
+   * Set user from server data (called from layout when server data arrives)
    */
-  async initialize(supabase: SupabaseClient<Database>, initialSession: Session | null): Promise<void> {
-    // If already initialized, just update the state without re-setting up listeners
-    const needsListenerSetup = !state.isInitialized;
-
-    state.isLoading = true;
-    state.error = null;
-
-    try {
-      // Always verify the user with getUser() for security
-      // Do NOT trust the user from initialSession as it comes from storage
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
-
-      // Get session data (tokens, etc.)
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      // Only use the session if the user is verified
-      state.session = user ? session : null;
-      state.user = user;
-
-      // Set up auth state change listener only on first initialization
-      if (needsListenerSetup) {
-        this.setupAuthListener(supabase);
-        state.isInitialized = true;
-      }
-    } catch (error) {
-      console.error('Failed to initialize auth:', error);
-      state.error = error instanceof Error ? error.message : 'Failed to initialize auth';
-    } finally {
-      state.isLoading = false;
+  setUser(user: { id: string; email: string } | null): void {
+    if (user) {
+      state.userId = user.id;
+      state.userEmail = user.email;
+    } else {
+      state.userId = null;
+      state.userEmail = null;
     }
   },
 
   /**
-   * Set up listener for auth state changes
-   * NOTE: ONLY handles SIGNED_OUT events. SIGNED_IN is handled during login flow.
-   * Visibility-based auth checks are disabled to prevent UI freezing.
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
-   */
-  setupAuthListener(supabase: SupabaseClient<Database>): void {
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      // ONLY handle sign-out - ignore all other events to prevent UI issues
-      if (event === 'SIGNED_OUT') {
-        state.session = null;
-        state.user = null;
-
-        // Clear local data
-        await this.clearLocalData();
-
-        // Redirect to login page
-        window.location.href = '/login';
-      }
-      // Ignore SIGNED_IN, TOKEN_REFRESHED, etc. - these were causing UI to freeze
-    });
-  },
-
-  /**
    * Sign in with email and password
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
-   * @param credentials - Login credentials (email and password)
    */
-  async signIn(supabase: SupabaseClient<Database>, credentials: LoginFormData): Promise<{ success: boolean; error?: string }> {
+  async signIn(credentials: { email: string; password: string }): Promise<{ success: boolean; error?: string }> {
     state.isLoading = true;
     state.error = null;
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
       });
 
-      if (error) {
-        state.error = error.message;
-        return { success: false, error: error.message };
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Login failed' }));
+        const message = data.error || `Login failed: ${res.status}`;
+        state.error = message;
+        return { success: false, error: message };
       }
 
-      if (!data.session) {
-        state.error = 'No session returned';
-        return { success: false, error: 'No session returned' };
-      }
-
-      state.session = data.session;
-      state.user = data.user;
-
-      // Invalidate and reload data
-      await invalidate('supabase:auth');
-
-      // Redirect to home
-      await goto('/');
-
+      // Full page reload to get server data
+      window.location.href = '/';
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign in failed';
@@ -198,34 +112,19 @@ export const authStore = {
 
   /**
    * Sign out current user
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
    */
-  async signOut(supabase: SupabaseClient<Database>): Promise<void> {
+  async signOut(): Promise<void> {
     state.isLoading = true;
     state.error = null;
 
     try {
-      // Sign out from Supabase
-      // This will trigger the auth state listener which will handle the redirect
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error('Supabase sign out error:', error);
-        // If signOut fails, manually redirect
-        window.location.href = '/login';
-      }
-
-      // The redirect will happen in the auth state listener
-      // So we don't need to do anything else here
+      await fetch('/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Sign out error:', error);
-      state.error = error instanceof Error ? error.message : 'Sign out failed';
-
-      // Force redirect on error
-      window.location.href = '/login';
     } finally {
       state.isLoading = false;
+      // Always redirect to login
+      window.location.href = '/login';
     }
   },
 
@@ -237,63 +136,6 @@ export const authStore = {
       await db.clearAll();
     } catch (error) {
       console.error('Failed to clear local database:', error);
-    }
-  },
-
-  /**
-   * Check if user session is valid
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
-   */
-  async checkSession(supabase: SupabaseClient<Database>): Promise<boolean> {
-    try {
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
-
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      if (!session || !user) {
-        state.session = null;
-        state.user = null;
-        return false;
-      }
-
-      state.session = session;
-      state.user = user;
-      return true;
-    } catch (error) {
-      console.error('Session check failed:', error);
-      return false;
-    }
-  },
-
-  /**
-   * Refresh the current session
-   *
-   * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
-   */
-  async refreshSession(supabase: SupabaseClient<Database>): Promise<void> {
-    try {
-      const {
-        data: { session },
-        error
-      } = await supabase.auth.refreshSession();
-
-      if (error) throw error;
-
-      // Verify the user for security instead of trusting session.user
-      const {
-        data: { user }
-      } = await supabase.auth.getUser();
-
-      state.session = user ? session : null;
-      state.user = user;
-    } catch (error) {
-      console.error('Failed to refresh session:', error);
-      state.error = error instanceof Error ? error.message : 'Failed to refresh session';
     }
   },
 
@@ -311,14 +153,3 @@ export const authStore = {
     state.isLoading = loading;
   }
 };
-
-// ============================================================================
-// LEGACY EXPORT (for backwards compatibility)
-// ============================================================================
-
-/**
- * @deprecated Use authStore instead
- */
-export function createAuthStore() {
-  return authStore;
-}

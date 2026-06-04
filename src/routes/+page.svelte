@@ -19,6 +19,7 @@
   import { toast } from 'svelte-sonner';
   import { themeStore, type ThemeColor } from '$lib/stores/theme.svelte';
   import { db } from '$lib/db/local';
+  import { apiPost, apiPatch, apiGet } from '$lib/api/client';
   import type { SyncResult } from '$lib/db/sync';
   import {
     Carousel,
@@ -34,7 +35,6 @@
   // Props
   interface Props {
     data: {
-      supabase: import('@supabase/supabase-js').SupabaseClient;
       lists: ListWithItems[];
     };
   }
@@ -268,20 +268,11 @@
   // Item actions
   async function handleAddItem(listId: number, text: string) {
     try {
-      const { data: newItem, error } = await data.supabase
-        .from('items')
-        .insert({
-          list_id: listId,
-          text: text.trim(),
-          is_checked: false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding item:', error);
-        throw error;
-      }
+      const newItem = await apiPost<Item>('/api/items', {
+        list_id: listId,
+        text: text.trim(),
+        is_checked: false
+      });
 
       // Update local state
       listsData = listsData.map(list => {
@@ -327,34 +318,19 @@
         updateData.quantity = null;
       }
 
-      const { error } = await data.supabase
-        .from('items')
-        .update(updateData)
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error toggling item:', error);
-        throw error;
-      }
+      await apiPatch(`/api/items/${itemId}`, updateData);
 
       // Log check action for shopping lists (only when checking, not unchecking)
       if (newCheckedState && currentList.list.type === 'shopping' && authStore.userId) {
         try {
-          // Insert to Supabase
-          const { error: logError } = await data.supabase
-            .from('item_check_logs')
-            .insert({
-              user_id: authStore.userId,
-              list_name: currentList.list.title,
-              item_name: currentItem.text,
-              checked_at: new Date().toISOString(),
-              list_id: currentList.list.id,
-              item_id: itemId
-            });
-
-          if (logError) {
-            console.error('Error logging check action:', logError);
-          }
+          await apiPost('/api/sync/check-logs', [{
+            user_id: authStore.userId,
+            list_name: currentList.list.title,
+            item_name: currentItem.text,
+            checked_at: new Date().toISOString(),
+            list_id: currentList.list.id,
+            item_id: itemId
+          }]);
 
           // Also log to local DB for offline support
           await db.logItemCheck(
@@ -398,18 +374,10 @@
 
   async function handleSaveEdit(itemId: number, newText: string) {
     try {
-      const { error } = await data.supabase
-        .from('items')
-        .update({
-          text: newText,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error updating item:', error);
-        throw error;
-      }
+      await apiPatch(`/api/items/${itemId}`, {
+        text: newText,
+        updated_at: new Date().toISOString()
+      });
 
       // Update local state
       listsData = listsData.map(list => ({
@@ -432,18 +400,10 @@
 
   async function handleMoveItem(itemId: number, newListId: number) {
     try {
-      const { error } = await data.supabase
-        .from('items')
-        .update({
-          list_id: newListId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error moving item:', error);
-        throw error;
-      }
+      await apiPatch(`/api/items/${itemId}`, {
+        list_id: newListId,
+        updated_at: new Date().toISOString()
+      });
 
       // Update local state - move item from old list to new list
       let movedItem: Item | undefined;
@@ -499,18 +459,10 @@
     if (deletingItemId === null) return;
 
     try {
-      const { error } = await data.supabase
-        .from('items')
-        .update({
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', deletingItemId);
-
-      if (error) {
-        console.error('Error deleting item:', error);
-        throw error;
-      }
+      await apiPatch(`/api/items/${deletingItemId}`, {
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
 
       // Update local state
       listsData = listsData.map(list => ({
@@ -602,15 +554,7 @@
         return `${year}-${month}-${day}`;
       };
 
-      const { data: menusData, error } = await data.supabase.rpc('get_menus_with_dishes', {
-        p_start_date: formatDateISO(today),
-        p_end_date: formatDateISO(endDate)
-      });
-
-      if (error) {
-        console.error('Error loading menus for confirmation:', error);
-        throw error;
-      }
+      const menusData = await apiGet<MenuWithDetails[]>(`/api/menus?from=${formatDateISO(today)}&to=${formatDateISO(endDate)}`);
 
       unconfirmedMenus = (menusData || []).filter((m: MenuWithDetails) => !m.menu.is_confirmed && m.menu.dish_id !== null);
 
@@ -986,7 +930,6 @@
           <!-- Meals view - inline meal planner -->
           <div class="mobile-meals-view">
             <MealPlannerContent
-              supabase={data.supabase}
               userId={authStore.userId || ''}
               onConfirmMenu={handleConfirmMenuClick}
               showCloseButton={false}
@@ -1137,7 +1080,6 @@
   <EditListsModal
     isOpen={isEditListsModalOpen}
     onClose={handleEditListsModalClose}
-    supabase={data.supabase}
     userId={authStore.userId || ''}
     initialLists={listsData}
     onListsUpdated={handleListsUpdated}
@@ -1147,7 +1089,6 @@
   <DishesModal
     isOpen={isDishesModalOpen}
     onClose={handleDishesModalClose}
-    supabase={data.supabase}
     userId={authStore.userId || ''}
     lists={listsData}
   />
@@ -1156,7 +1097,6 @@
   <MealPlannerModal
     isOpen={isMealPlannerModalOpen}
     onClose={handleMealPlannerModalClose}
-    supabase={data.supabase}
     userId={authStore.userId || ''}
     onConfirmMenu={handleConfirmMenuClick}
   />
@@ -1165,7 +1105,6 @@
   <MenuConfirmationDialog
     isOpen={isMenuConfirmationDialogOpen}
     onClose={handleMenuConfirmationDialogClose}
-    supabase={data.supabase}
     menus={unconfirmedMenus}
     onConfirmed={handleMenuConfirmed}
   />

@@ -1,30 +1,15 @@
-// SvelteKit hooks for Supabase authentication
-// Handles server-side session management and makes supabase client available in locals
-
-import { createSupabaseServerClient } from '$lib/db/supabase';
+import { verifySession } from '$lib/server/auth/session';
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-  // Create Supabase client with cookie handling
-  event.locals.supabase = createSupabaseServerClient(event.cookies);
+	const { pathname } = event.url;
 
-  // Get user from Supabase (validates session with auth server)
-  const {
-    data: { user }
-  } = await event.locals.supabase.auth.getUser();
+	if (pathname === '/healthz' || pathname.startsWith('/auth/')) {
+		event.locals.user = null;
+		return resolve(event);
+	}
 
-  // Get session separately (for session data like access tokens)
-  const {
-    data: { session }
-  } = await event.locals.supabase.auth.getSession();
+	event.locals.user = await verifySession(event.cookies);
 
-  event.locals.session = session;
-  event.locals.user = user;
-
-  return resolve(event, {
-    filterSerializedResponseHeaders(name) {
-      // Allow Set-Cookie headers to be sent
-      return name === 'content-range' || name === 'x-supabase-api-version';
-    }
-  });
+	return resolve(event);
 };

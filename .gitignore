@@ -34,8 +34,11 @@ TROUBLESHOOTING.md
 ANIMATION_ENHANCEMENT_PLAN.md
 MODAL_ANIMATION_INVESTIGATION.md
 
-# Supabase
-supabase/migrations/
+# Database dumps
+*.dump
+
+# Docker build config (contains registry info)
+docker/.env.unraid
 
 # Docs
 docs/

@@ -1,12 +1,8 @@
 <script lang="ts">
-  import { getSupabaseContext } from '$lib/db/supabase.context.svelte';
   import { authStore } from '$lib/stores/auth.svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-
-  // Get Supabase client from context (provided by +layout.svelte)
-  const supabase = getSupabaseContext();
 
   // State
   let email = $state('');
@@ -37,7 +33,7 @@
 
     try {
       // Use authStore to sign in (it will handle redirect)
-      const result = await authStore.signIn(supabase, { email, password });
+      const result = await authStore.signIn({ email, password });
 
       if (!result.success && result.error) {
         // Handle authentication errors

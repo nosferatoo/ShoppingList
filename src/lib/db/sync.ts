@@ -1,11 +1,11 @@
 // Sync logic (Last Write Wins)
-// Implements offline-first sync between Supabase and IndexedDB
+// Implements offline-first sync between server and IndexedDB
 // Always performs full sync for simplicity and reliability
 
 import { browser } from '$app/environment';
 import { db } from './local';
-import type { SyncItemsResponse, UserListsWithItemsResponse, Database } from '$lib/types';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { apiGet, apiPost } from '$lib/api/client';
+import type { SyncItemsResponse, UserListsWithItemsResponse } from '$lib/types';
 
 // ============================================================================
 // TYPES
@@ -45,10 +45,8 @@ export async function setLastSyncTime(time: string): Promise<void> {
  * Main synchronization function
  * 1. Pushes local pending changes to server (with server-side LWW conflict resolution)
  * 2. Performs full sync from server (replaces local state with server state)
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function sync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
+export async function sync(userId: string): Promise<SyncResult> {
   const result: SyncResult = {
     pushed: 0,
     pulled: 0,
@@ -58,13 +56,13 @@ export async function sync(supabase: SupabaseClient<Database>): Promise<SyncResu
 
   try {
     // 1. Push local changes first
-    result.pushed = await pushPendingChanges(supabase);
+    result.pushed = await pushPendingChanges(userId);
 
     // 2. Push pending check logs
-    await pushPendingCheckLogs(supabase);
+    await pushPendingCheckLogs(userId);
 
     // 3. Pull remote changes
-    const pullResult = await pullRemoteChanges(supabase);
+    const pullResult = await fullSync(userId);
     result.pulled = pullResult.count;
     result.hasRemoteChanges = pullResult.hasChanges;
 
@@ -81,11 +79,9 @@ export async function sync(supabase: SupabaseClient<Database>): Promise<SyncResu
 
 /**
  * Push pending local changes to the server
- * Uses the sync_items RPC function for batch updates with LWW
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
+ * Uses the sync_items API endpoint for batch updates with LWW
  */
-async function pushPendingChanges(supabase: SupabaseClient<Database>): Promise<number> {
+async function pushPendingChanges(userId: string): Promise<number> {
 
   // Get all pending items
   const pendingItems = await db.items
@@ -106,19 +102,11 @@ async function pushPendingChanges(supabase: SupabaseClient<Database>): Promise<n
     deleted_at: item.deleted_at
   }));
 
-  // Call batch sync function
-  const { data, error } = await supabase.rpc('sync_items', {
-    p_items: itemsToSync as any
-  });
-
-  if (error) {
-    console.error('Push failed:', error);
-    throw error;
-  }
+  // Call batch sync endpoint
+  const syncResponse = await apiPost<SyncItemsResponse>('/api/sync/items', { p_items: itemsToSync });
 
   // Process results
   let successCount = 0;
-  const syncResponse = data as unknown as SyncItemsResponse;
 
   for (const result of syncResponse.results) {
     if (result.success) {
@@ -147,10 +135,8 @@ async function pushPendingChanges(supabase: SupabaseClient<Database>): Promise<n
 /**
  * Push pending check logs to the server
  * Check logs are append-only, so no conflict resolution needed
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function pushPendingCheckLogs(supabase: SupabaseClient<Database>): Promise<number> {
+async function pushPendingCheckLogs(userId: string): Promise<number> {
 
   // Get all pending check logs
   const pendingLogs = await db.getPendingCheckLogs();
@@ -169,15 +155,8 @@ async function pushPendingCheckLogs(supabase: SupabaseClient<Database>): Promise
     item_id: log.item_id
   }));
 
-  // Insert all logs at once
-  const { error } = await supabase
-    .from('item_check_logs')
-    .insert(logsToInsert);
-
-  if (error) {
-    console.error('Push check logs failed:', error);
-    throw error;
-  }
+  // Insert all logs at once via API
+  await apiPost('/api/sync/check-logs', logsToInsert);
 
   // Mark all logs as synced by clearing them from local DB
   // (We don't need to keep synced logs locally since they're append-only)
@@ -191,47 +170,15 @@ async function pushPendingCheckLogs(supabase: SupabaseClient<Database>): Promise
 }
 
 // ============================================================================
-// PULL REMOTE CHANGES
-// ============================================================================
-
-/**
- * Pull remote changes from server
- * Always performs full sync for simplicity and reliability
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
- */
-async function pullRemoteChanges(supabase: SupabaseClient<Database>): Promise<{ count: number; hasChanges: boolean }> {
-  return await fullSync(supabase);
-}
-
-// ============================================================================
 // FULL SYNC
 // ============================================================================
 
 /**
- * Perform full sync on first load
+ * Perform full sync
  * Clears local database and loads all accessible lists and items
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-async function fullSync(supabase: SupabaseClient<Database>): Promise<{ count: number; hasChanges: boolean }> {
-  // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('No authenticated user for full sync');
-  }
-
-  const userId = user.id;
-
-  const { data, error } = await supabase.rpc('get_user_lists_with_items');
-
-  if (error) {
-    console.error('Full sync failed:', error);
-    throw error;
-  }
-
-  const listsData = data as unknown as UserListsWithItemsResponse[];
+async function fullSync(userId: string): Promise<{ count: number; hasChanges: boolean }> {
+  const listsData = await apiGet<UserListsWithItemsResponse[]>('/api/sync');
 
   // Clear and repopulate in a transaction
   await db.transaction('rw', [db.lists, db.items, db.userListSettings], async () => {
@@ -268,76 +215,26 @@ async function fullSync(supabase: SupabaseClient<Database>): Promise<{ count: nu
 }
 
 // ============================================================================
-// CONFLICT RESOLUTION
-// ============================================================================
-
-/**
- * Conflict resolution is handled by the push phase (server-side LWW in sync_items RPC)
- * and full sync on pull (server state replaces local state completely)
- */
-
-// ============================================================================
-// SYNC LISTENERS
-// ============================================================================
-
-/**
- * Initialize automatic sync listeners
- * Triggers sync on:
- * - App visibility change (user returns to tab)
- * - Network status change (coming back online)
- */
-export function initSyncListeners(onSyncComplete?: (result: SyncResult) => void): void {
-  if (!browser) return;
-
-  // 1. Sync when app becomes visible
-  // TEMPORARILY DISABLED - This was causing UI to become unresponsive
-  // document.addEventListener('visibilitychange', async () => {
-  //   if (document.visibilityState === 'visible' && navigator.onLine) {
-  //     try {
-  //       const result = await sync();
-  //       onSyncComplete?.(result);
-  //     } catch (error) {
-  //       console.error('Auto-sync on visibility change failed:', error);
-  //     }
-  //   }
-  // });
-
-  // 2. Sync when coming back online
-  window.addEventListener('online', async () => {
-    try {
-      const result = await sync();
-      onSyncComplete?.(result);
-    } catch (error) {
-      console.error('Auto-sync on online event failed:', error);
-    }
-  });
-}
-
-// ============================================================================
 // MANUAL SYNC
 // ============================================================================
 
 /**
  * Manually trigger sync (called from settings menu)
  * Throws error if offline
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function manualSync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
+export async function manualSync(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) {
     throw new Error('Cannot sync while offline');
   }
-  return await sync(supabase);
+  return await sync(userId);
 }
 
 /**
  * Reset local database and perform full sync
  * Completely deletes and recreates the local database to fix any corruption
  * Used when user wants to force a complete refresh from server
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
  */
-export async function clearCacheAndSync(supabase: SupabaseClient<Database>): Promise<SyncResult> {
+export async function clearCacheAndSync(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) {
     throw new Error('Cannot sync while offline');
   }
@@ -356,116 +253,11 @@ export async function clearCacheAndSync(supabase: SupabaseClient<Database>): Pro
     await db.lists.count();
 
     // Step 4: Perform full sync (which fetches all data from server)
-    const result = await sync(supabase);
+    const result = await sync(userId);
 
     return result;
   } catch (error) {
     console.error('Database reset and sync failed:', error);
     throw error;
-  }
-}
-
-// ============================================================================
-// REALTIME SUBSCRIPTIONS
-// ============================================================================
-
-/**
- * Subscribe to real-time changes from Supabase
- * Updates local database when other users make changes
- *
- * @param supabase - Supabase client from +layout.ts (configured with SvelteKit fetch)
- * @param userId - Current user's ID
- * @param onRemoteChange - Callback when remote change detected
- * @returns Unsubscribe function
- */
-export function subscribeToChanges(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-  onRemoteChange: () => void
-): () => void {
-
-  // Subscribe to items changes
-  const itemsChannel = supabase
-    .channel('items-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'items'
-      },
-      async (payload) => {
-        await handleItemChange(payload);
-        onRemoteChange();
-      }
-    )
-    .subscribe();
-
-  // Subscribe to lists changes
-  const listsChannel = supabase
-    .channel('lists-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'lists'
-      },
-      async (payload) => {
-        await handleListChange(payload);
-        onRemoteChange();
-      }
-    )
-    .subscribe();
-
-  // Return unsubscribe function
-  return () => {
-    itemsChannel.unsubscribe();
-    listsChannel.unsubscribe();
-  };
-}
-
-/**
- * Handle real-time item change event
- */
-async function handleItemChange(payload: any): Promise<void> {
-  const item = payload.new || payload.old;
-
-  switch (payload.eventType) {
-    case 'INSERT':
-    case 'UPDATE':
-      const local = await db.items.get(item.id);
-      // Only update if remote is newer or local doesn't exist
-      if (!local || new Date(item.updated_at) > new Date(local.updated_at)) {
-        await db.items.put({ ...item, _pending: false });
-      }
-      break;
-
-    case 'DELETE':
-      await db.items.delete(item.id);
-      break;
-  }
-}
-
-/**
- * Handle real-time list change event
- */
-async function handleListChange(payload: any): Promise<void> {
-  const list = payload.new || payload.old;
-
-  switch (payload.eventType) {
-    case 'INSERT':
-    case 'UPDATE':
-      const local = await db.lists.get(list.id);
-      if (!local || new Date(list.updated_at) > new Date(local.updated_at)) {
-        await db.lists.put(list);
-      }
-      break;
-
-    case 'DELETE':
-      await db.lists.delete(list.id);
-      // Also delete associated items locally
-      await db.items.where('list_id').equals(list.id).delete();
-      break;
   }
 }

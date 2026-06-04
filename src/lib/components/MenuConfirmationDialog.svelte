@@ -12,18 +12,18 @@
     DialogHeader,
     DialogTitle
   } from '$lib/components/ui/dialog';
+  import { apiPost } from '$lib/api/client';
   import type { Menu, MenuWithDetails, Item, ConfirmMenuResponse } from '$lib/types';
 
   // Props
   interface Props {
     isOpen?: boolean;
     onClose?: () => void;
-    supabase: import('@supabase/supabase-js').SupabaseClient;
     menus: MenuWithDetails[];
     onConfirmed?: () => void;
   }
 
-  let { isOpen = false, onClose, supabase, menus, onConfirmed }: Props = $props();
+  let { isOpen = false, onClose, menus, onConfirmed }: Props = $props();
 
   // State
   let excludedItemIds = $state<Set<number>>(new Set());
@@ -103,18 +103,11 @@
         return;
       }
 
-      // Call RPC function
-      const { data, error } = await supabase.rpc('confirm_menu_and_update_quantities', {
+      // Call API endpoint
+      const result = await apiPost<ConfirmMenuResponse>('/api/menus/confirm', {
         p_menu_ids: menuIds,
         p_excluded_item_ids: Array.from(excludedItemIds)
       });
-
-      if (error) {
-        console.error('Error confirming menu:', error);
-        throw error;
-      }
-
-      const result = data as ConfirmMenuResponse;
 
       // Reset state
       excludedItemIds = new Set();
