@@ -8,7 +8,7 @@
 #   - docker engine running; user in the docker group (no sudo needed)
 #   - registry.tomaz.xyz reachable
 #   - SSH access to root@192.168.1.20 (key-based auth recommended; with
-#     password auth you are asked once per ssh call, ~4 times)
+#     password auth you are asked once per ssh/scp call, ~5-6 times)
 #   - docker/.env.unraid filled in
 #
 # Usage:
@@ -57,7 +57,7 @@ say "$C_CYAN" "  ShoppingList — Deploy to UnRAID"
 say "$C_CYAN" "========================================"
 echo
 
-say "$C_YELLOW" "[1/3] Building and pushing image..."
+say "$C_YELLOW" "[1/4] Building and pushing image..."
 if ! "$SCRIPT_DIR/build-unraid.sh" ${build_args[@]+"${build_args[@]}"}; then
     say "$C_RED" "Build/push failed. Aborting deploy."
     exit 1
@@ -70,10 +70,42 @@ if [[ $NO_DEPLOY -eq 1 ]]; then
 fi
 
 # -------------------------------------------
-# Step 2: Pull new image on UnRAID
+# Step 2: Sync compose file to UnRAID (added 2026-09-27)
+# -------------------------------------------
+# The compose file on UnRAID was copied there by hand once; until now compose changes never
+# reached production. Compare first: identical → skip; different → show the diff and ask,
+# because a hand edit made on the server would otherwise be overwritten silently.
+echo
+say "$C_YELLOW" "[2/4] Syncing compose file to UnRAID..."
+
+remote_copy="$(mktemp)"
+trap 'rm -f "$remote_copy"' EXIT
+if ! ssh "$UNRAID_HOST" "cat $COMPOSE_DIR/$COMPOSE_FILE" > "$remote_copy"; then
+    say "$C_RED" "Could not read $COMPOSE_DIR/$COMPOSE_FILE on UnRAID."
+    exit 1
+fi
+if cmp -s "$remote_copy" "$SCRIPT_DIR/$COMPOSE_FILE"; then
+    say "$C_GREEN" "Compose file unchanged — nothing to copy."
+else
+    say "$C_YELLOW" "The compose file differs from UnRAID's copy (- UnRAID, + this repo):"
+    diff -u --label "UnRAID:$COMPOSE_FILE" --label "repo:$COMPOSE_FILE" "$remote_copy" "$SCRIPT_DIR/$COMPOSE_FILE" || true
+    read -rp "Overwrite UnRAID's copy with the repo version? [y/N] " answer
+    if [[ ! $answer =~ ^[Yy]$ ]]; then
+        say "$C_RED" "Deploy stopped — nothing on UnRAID was changed. Bring the two files in line first."
+        exit 1
+    fi
+    if ! scp "$SCRIPT_DIR/$COMPOSE_FILE" "${UNRAID_HOST}:${COMPOSE_DIR}/${COMPOSE_FILE}"; then
+        say "$C_RED" "Failed to copy compose file to UnRAID."
+        exit 1
+    fi
+    say "$C_GREEN" "Compose file synced."
+fi
+
+# -------------------------------------------
+# Step 3: Pull new image on UnRAID
 # -------------------------------------------
 echo
-say "$C_YELLOW" "[2/3] Pulling new image on UnRAID..."
+say "$C_YELLOW" "[3/4] Pulling new image on UnRAID..."
 
 if ! ssh "$UNRAID_HOST" "cd $COMPOSE_DIR && docker compose -f $COMPOSE_FILE pull"; then
     say "$C_RED" "Failed to pull image on UnRAID."
@@ -82,10 +114,10 @@ fi
 say "$C_GREEN" "Pull complete."
 
 # -------------------------------------------
-# Step 3: Restart container
+# Step 4: Restart container
 # -------------------------------------------
 echo
-say "$C_YELLOW" "[3/3] Restarting container on UnRAID..."
+say "$C_YELLOW" "[4/4] Restarting container on UnRAID..."
 
 if ! ssh "$UNRAID_HOST" "cd $COMPOSE_DIR && docker compose -f $COMPOSE_FILE up -d"; then
     say "$C_RED" "Failed to restart container."
